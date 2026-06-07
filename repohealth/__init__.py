@@ -1,3 +1,3 @@
-"""repohealth — assess the health of any Git repository."""
+"""repohealth — comprehensive repository health assessment CLI."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
