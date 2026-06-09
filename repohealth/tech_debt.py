@@ -7,24 +7,41 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 
 # Debt markers to search for
 DEBT_MARKERS = {
-    "TODO": re.compile(r'\bTODO\b[:\s]*(.*)', re.I),
-    "FIXME": re.compile(r'\bFIXME\b[:\s]*(.*)', re.I),
-    "HACK": re.compile(r'\bHACK\b[:\s]*(.*)', re.I),
-    "XXX": re.compile(r'\bXXX\b[:\s]*(.*)', re.I),
-    "DEPRECATED": re.compile(r'\bDEPRECATED\b[:\s]*(.*)', re.I),
-    "NOQA": re.compile(r'#\s*noqa\b', re.I),
+    "TODO": re.compile(r"\bTODO\b[:\s]*(.*)", re.I),
+    "FIXME": re.compile(r"\bFIXME\b[:\s]*(.*)", re.I),
+    "HACK": re.compile(r"\bHACK\b[:\s]*(.*)", re.I),
+    "XXX": re.compile(r"\bXXX\b[:\s]*(.*)", re.I),
+    "DEPRECATED": re.compile(r"\bDEPRECATED\b[:\s]*(.*)", re.I),
+    "NOQA": re.compile(r"#\s*noqa\b", re.I),
 }
 
 # Files to scan
 SCAN_EXTENSIONS = {
-    ".py", ".js", ".ts", ".jsx", ".tsx", ".rb", ".go", ".rs",
-    ".java", ".c", ".cpp", ".h", ".hpp", ".cs", ".swift",
-    ".yaml", ".yml", ".toml", ".sh", ".bash",
+    ".py",
+    ".js",
+    ".ts",
+    ".jsx",
+    ".tsx",
+    ".rb",
+    ".go",
+    ".rs",
+    ".java",
+    ".c",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".swift",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".sh",
+    ".bash",
 }
 
 
@@ -68,9 +85,20 @@ class TechDebtResult:
 
 
 SKIP_DIRS = {
-    ".git", "__pycache__", "node_modules", ".venv", "venv",
-    ".tox", ".mypy_cache", ".pytest_cache", "dist", "build",
-    ".eggs", ".idea", ".vscode", ".hg",
+    ".git",
+    "__pycache__",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".tox",
+    ".mypy_cache",
+    ".pytest_cache",
+    "dist",
+    "build",
+    ".eggs",
+    ".idea",
+    ".vscode",
+    ".hg",
 }
 
 
@@ -92,7 +120,9 @@ def _compute_cyclomatic_complexity(tree: ast.AST) -> int:
             complexity += 1
         elif isinstance(node, ast.Assert):
             complexity += 1
-        elif isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
+        elif isinstance(
+            node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+        ):
             complexity += 1
         elif isinstance(node, ast.BoolOp):
             # Each 'and'/'or' adds a decision point
@@ -125,13 +155,15 @@ def _scan_file_for_debt(filepath: Path, base: Path) -> List[DebtItem]:
                 else:
                     priority = "low"
 
-                items.append(DebtItem(
-                    file=str(filepath.relative_to(base)),
-                    line=line_num,
-                    marker=marker,
-                    message=message,
-                    priority=priority,
-                ))
+                items.append(
+                    DebtItem(
+                        file=str(filepath.relative_to(base)),
+                        line=line_num,
+                        marker=marker,
+                        message=message,
+                        priority=priority,
+                    )
+                )
 
     return items
 
@@ -150,16 +182,22 @@ def _analyze_python_complexity(filepath: Path, base: Path) -> List[ComplexityInf
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             complexity = _compute_cyclomatic_complexity(node)
             # Count lines
-            end_line = node.end_lineno if hasattr(node, 'end_lineno') and node.end_lineno else node.lineno
+            end_line = (
+                node.end_lineno
+                if hasattr(node, "end_lineno") and node.end_lineno
+                else node.lineno
+            )
             func_lines = end_line - node.lineno + 1
 
             if complexity > 10 or func_lines > 50:
-                results.append(ComplexityInfo(
-                    file=str(filepath.relative_to(base)),
-                    function=node.name,
-                    complexity=complexity,
-                    lines=func_lines,
-                ))
+                results.append(
+                    ComplexityInfo(
+                        file=str(filepath.relative_to(base)),
+                        function=node.name,
+                        complexity=complexity,
+                        lines=func_lines,
+                    )
+                )
 
     return results
 
@@ -184,7 +222,9 @@ def check(repo_path: str | None = None, max_items: int = 50) -> TechDebtResult:
     long_functions = 0
 
     for dirpath, dirnames, filenames in os.walk(base):
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+        dirnames[:] = [
+            d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")
+        ]
 
         for fname in filenames:
             ext = Path(fname).suffix.lower()
@@ -218,7 +258,11 @@ def check(repo_path: str | None = None, max_items: int = 50) -> TechDebtResult:
                     for node in ast.walk(tree):
                         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                             total_functions += 1
-                            end = node.end_lineno if hasattr(node, 'end_lineno') and node.end_lineno else node.lineno
+                            end = (
+                                node.end_lineno
+                                if hasattr(node, "end_lineno") and node.end_lineno
+                                else node.lineno
+                            )
                             if (end - node.lineno + 1) > 50:
                                 long_functions += 1
                 except (SyntaxError, OSError):
@@ -234,7 +278,8 @@ def check(repo_path: str | None = None, max_items: int = 50) -> TechDebtResult:
     max_complexity = max((c.complexity for c in all_complex), default=0)
     avg_complexity = (
         sum(c.complexity for c in all_complex) / len(all_complex)
-        if all_complex else 0.0
+        if all_complex
+        else 0.0
     )
 
     # Compute debt score (0-100, higher = more debt)

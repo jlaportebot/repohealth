@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # Try to import yaml, fall back to basic parsing if not available
 try:
     import yaml
+
     HAS_YAML = True
 except ImportError:
     HAS_YAML = False
@@ -109,7 +109,9 @@ class RepoHealthConfig:
             return 10  # Default weight
         return check.weight
 
-    def get_check_option(self, check_name: str, option: str, default: Any = None) -> Any:
+    def get_check_option(
+        self, check_name: str, option: str, default: Any = None
+    ) -> Any:
         """Get a specific option for a check."""
         check = self.checks.get(check_name)
         if check is None:
@@ -222,6 +224,7 @@ def generate_default_config(filepath: str | Path) -> Path:
 
     if HAS_YAML:
         import yaml as _yaml
+
         content = _yaml.dump(DEFAULTS, default_flow_style=False, sort_keys=True)
     else:
         # Manual YAML generation for common settings
@@ -232,7 +235,7 @@ def generate_default_config(filepath: str | Path) -> Path:
             f"large_file_threshold_kb: {DEFAULTS['large_file_threshold_kb']}",
             f"stale_branch_days: {DEFAULTS['stale_branch_days']}",
             f"high_churn_threshold: {DEFAULTS['high_churn_threshold']}",
-            f"churn_since: \"{DEFAULTS['churn_since']}\"",
+            f'churn_since: "{DEFAULTS["churn_since"]}"',
             f"save_history: {DEFAULTS['save_history']}",
             "",
             "checks:",
@@ -241,17 +244,19 @@ def generate_default_config(filepath: str | Path) -> Path:
             lines.append(f"  {name}:")
             lines.append(f"    enabled: {cfg['enabled']}")
             lines.append(f"    weight: {cfg['weight']}")
-        lines.extend([
-            "",
-            "output:",
-            f"  format: {DEFAULTS['output']['format']}",
-            f"  fail_on_grade: {DEFAULTS['output']['fail_on_grade']}",
-            f"  show_tips: {DEFAULTS['output']['show_tips']}",
-            "",
-            "ignore:",
-            "  paths: []",
-            "  checks: []",
-        ])
+        lines.extend(
+            [
+                "",
+                "output:",
+                f"  format: {DEFAULTS['output']['format']}",
+                f"  fail_on_grade: {DEFAULTS['output']['fail_on_grade']}",
+                f"  show_tips: {DEFAULTS['output']['show_tips']}",
+                "",
+                "ignore:",
+                "  paths: []",
+                "  checks: []",
+            ]
+        )
         content = "\n".join(lines) + "\n"
 
     path.write_text(content)

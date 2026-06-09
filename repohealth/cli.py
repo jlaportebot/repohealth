@@ -3,18 +3,14 @@
 from __future__ import annotations
 
 import json as _json
-import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.columns import Columns
-from rich.tree import Tree
 
 from . import (
     code_churn,
@@ -40,7 +36,9 @@ from .scoring import HealthReport
 
 
 def _color_status(status: str) -> str:
-    return {"pass": "[green]✓[/]", "warn": "[yellow]⚠[/]", "fail": "[red]✗[/]"}.get(status, "?")
+    return {"pass": "[green]✓[/]", "warn": "[yellow]⚠[/]", "fail": "[red]✗[/]"}.get(
+        status, "?"
+    )
 
 
 def _color_grade(grade: str) -> str:
@@ -72,7 +70,9 @@ def _run_checks(repo_path: str, cfg: RepoHealthConfig) -> HealthReport:
 
     large_result = None
     if cfg.is_check_enabled("large_files"):
-        large_result = large_files.check(repo_path, threshold_kb=cfg.large_file_threshold_kb)
+        large_result = large_files.check(
+            repo_path, threshold_kb=cfg.large_file_threshold_kb
+        )
 
     activity_result = None
     if cfg.is_check_enabled("activity"):
@@ -82,13 +82,17 @@ def _run_checks(repo_path: str, cfg: RepoHealthConfig) -> HealthReport:
     churn_result = None
     if cfg.is_check_enabled("code_churn"):
         churn_result = code_churn.check(
-            repo_path, since=cfg.churn_since, top_n=cfg.churn_top_n,
+            repo_path,
+            since=cfg.churn_since,
+            top_n=cfg.churn_top_n,
             high_churn_threshold=cfg.high_churn_threshold,
         )
 
     conventions_result = None
     if cfg.is_check_enabled("commit_conventions"):
-        conventions_result = commit_conventions.check(repo_path, since=cfg.conventions_since)
+        conventions_result = commit_conventions.check(
+            repo_path, since=cfg.conventions_since
+        )
 
     pr_result = None
     if cfg.is_check_enabled("pr_review"):
@@ -157,7 +161,9 @@ def _report_to_dict(report: HealthReport) -> Dict[str, Any]:
     }
 
 
-def _print_rich_report(report: HealthReport, console: Console, show_tips: bool = True) -> None:
+def _print_rich_report(
+    report: HealthReport, console: Console, show_tips: bool = True
+) -> None:
     """Print a rich-formatted health report."""
     table = Table(title=None, show_header=True, header_style="bold")
     table.add_column("Check", style="bold")
@@ -167,9 +173,13 @@ def _print_rich_report(report: HealthReport, console: Console, show_tips: bool =
     table.add_column("Detail")
 
     for c in report.checks:
-        table.add_row(c.name, str(c.score), str(c.weight), _color_status(c.status), c.detail)
+        table.add_row(
+            c.name, str(c.score), str(c.weight), _color_status(c.status), c.detail
+        )
 
-    border_style = "green" if report.score >= 80 else "yellow" if report.score >= 60 else "red"
+    border_style = (
+        "green" if report.score >= 80 else "yellow" if report.score >= 60 else "red"
+    )
     console.print()
     console.print(
         Panel(
@@ -186,22 +196,34 @@ def _print_rich_report(report: HealthReport, console: Console, show_tips: bool =
         for c in report.checks:
             if c.status == "fail":
                 if c.name == "Security":
-                    tips.append("[red]🔒[/] Remove hardcoded secrets and add SECURITY.md")
+                    tips.append(
+                        "[red]🔒[/] Remove hardcoded secrets and add SECURITY.md"
+                    )
                 elif c.name == "Test Coverage":
                     tips.append("[red]🧪[/] Add tests for uncovered source files")
                 elif c.name == "Essentials":
-                    tips.append("[red]📄[/] Add missing essential files (README, LICENSE, CI)")
+                    tips.append(
+                        "[red]📄[/] Add missing essential files (README, LICENSE, CI)"
+                    )
                 elif c.name == "Commit Conventions":
-                    tips.append("[yellow]📝[/] Adopt conventional commit format (feat|fix|docs: ...)")
+                    tips.append(
+                        "[yellow]📝[/] Adopt conventional commit format (feat|fix|docs: ...)"
+                    )
                 elif c.name == "Tech Debt":
-                    tips.append("[yellow]🔧[/] Address FIXMEs and high-complexity functions")
+                    tips.append(
+                        "[yellow]🔧[/] Address FIXMEs and high-complexity functions"
+                    )
             elif c.status == "warn":
                 if c.name == "Code Churn":
-                    tips.append("[yellow]🔄[/] Refactor high-churn files to reduce volatility")
+                    tips.append(
+                        "[yellow]🔄[/] Refactor high-churn files to reduce volatility"
+                    )
                 elif c.name == "Documentation":
                     tips.append("[yellow]📖[/] Add docstrings to public APIs")
                 elif c.name == "Dependency Graph":
-                    tips.append("[yellow]📦[/] Pin dependency versions and remove unused deps")
+                    tips.append(
+                        "[yellow]📦[/] Pin dependency versions and remove unused deps"
+                    )
 
         if tips:
             console.print()
@@ -216,8 +238,12 @@ def _print_github_action_report(report: HealthReport) -> None:
     """Print a GitHub Actions-compatible report."""
     for c in report.checks:
         symbol = "✓" if c.status == "pass" else "⚠" if c.status == "warn" else "✗"
-        print(f"::{c.status} file=repohealth,title={c.name}::{symbol} {c.name}: {c.score}/100 — {c.detail}")
-    print(f"::notice file=repohealth,title=Overall::Score {report.score}/100, Grade {report.grade}")
+        print(
+            f"::{c.status} file=repohealth,title={c.name}::{symbol} {c.name}: {c.score}/100 — {c.detail}"
+        )
+    print(
+        f"::notice file=repohealth,title=Overall::Score {report.score}/100, Grade {report.grade}"
+    )
 
 
 # ── CLI Commands ─────────────────────────────────────────────────────────────
@@ -236,12 +262,16 @@ def main() -> None:
 
 @main.command()
 @click.argument("path", default=".")
-@click.option("--threshold", "-t", default=1024, help="Large-file threshold in KB (default 1024)")
+@click.option(
+    "--threshold", "-t", default=1024, help="Large-file threshold in KB (default 1024)"
+)
 @click.option("--json-output", "-j", "json_fmt", is_flag=True, help="Output as JSON")
 @click.option("--github-action", "-g", is_flag=True, help="Output for GitHub Actions")
 @click.option("--save", "-s", is_flag=True, help="Save report to history")
 @click.option("--no-tips", is_flag=True, help="Hide improvement tips")
-@click.option("--config", "config_file", default=None, help="Path to .repohealth.yml config")
+@click.option(
+    "--config", "config_file", default=None, help="Path to .repohealth.yml config"
+)
 def check(
     path: str,
     threshold: int,
@@ -262,10 +292,12 @@ def check(
         # Override with specific config file
         try:
             import yaml
+
             with open(config_file) as f:
                 file_data = yaml.safe_load(f) or {}
             # Merge on top of defaults
             from .config import _deep_merge, DEFAULTS
+
             merged = _deep_merge(DEFAULTS, file_data)
             # Rebuild config... simplified: just update threshold
             if "large_file_threshold_kb" in merged:
@@ -280,7 +312,12 @@ def check(
     console = Console() if not json_fmt and not github_action else None
 
     if console:
-        with Progress(SpinnerColumn(), TextColumn("[bold]Running checks...[/]"), console=console, transient=True):
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[bold]Running checks...[/]"),
+            console=console,
+            transient=True,
+        ):
             report = _run_checks(path, cfg)
     else:
         report = _run_checks(path, cfg)
@@ -323,7 +360,15 @@ def history(path: str, limit: int, json_fmt: bool) -> None:
         return
 
     if json_fmt:
-        data = [{"timestamp": e.timestamp, "score": e.score, "grade": e.grade, "path": e.path} for e in entries]
+        data = [
+            {
+                "timestamp": e.timestamp,
+                "score": e.score,
+                "grade": e.grade,
+                "path": e.path,
+            }
+            for e in entries
+        ]
         click.echo(_json.dumps(data, indent=2))
         return
 
@@ -342,7 +387,12 @@ def history(path: str, limit: int, json_fmt: bool) -> None:
 
     # Show trend
     trend = history_mod.get_trend(entries)
-    trend_icons = {"improving": "📈", "stable": "➡️", "declining": "📉", "insufficient": "❓"}
+    trend_icons = {
+        "improving": "📈",
+        "stable": "➡️",
+        "declining": "📉",
+        "insufficient": "❓",
+    }
     console.print(f"\n{trend_icons.get(trend, '❓')} Trend: [bold]{trend}[/]")
 
     # Prune old entries
@@ -353,7 +403,9 @@ def history(path: str, limit: int, json_fmt: bool) -> None:
 
 @main.command()
 @click.argument("path", default=".")
-@click.option("--since", "-s", default=None, help="Compare to specific timestamp (YYYY-MM-DD)")
+@click.option(
+    "--since", "-s", default=None, help="Compare to specific timestamp (YYYY-MM-DD)"
+)
 @click.option("--json-output", "-j", "json_fmt", is_flag=True, help="Output as JSON")
 def compare(path: str, since: Optional[str], json_fmt: bool) -> None:
     """Compare current health to a previous report.
@@ -363,7 +415,10 @@ def compare(path: str, since: Optional[str], json_fmt: bool) -> None:
     entries = history_mod.load_history(repo_path=path)
 
     if len(entries) < 2:
-        click.echo("Need at least 2 history entries to compare. Run 'repohealth check --save' multiple times.", err=True)
+        click.echo(
+            "Need at least 2 history entries to compare. Run 'repohealth check --save' multiple times.",
+            err=True,
+        )
         return
 
     # Find the "earlier" entry
@@ -384,8 +439,16 @@ def compare(path: str, since: Optional[str], json_fmt: bool) -> None:
 
     if json_fmt:
         data = {
-            "earlier": {"timestamp": earlier.timestamp, "score": earlier.score, "grade": earlier.grade},
-            "later": {"timestamp": later.timestamp, "score": later.score, "grade": later.grade},
+            "earlier": {
+                "timestamp": earlier.timestamp,
+                "score": earlier.score,
+                "grade": earlier.grade,
+            },
+            "later": {
+                "timestamp": later.timestamp,
+                "score": later.score,
+                "grade": later.grade,
+            },
             "score_delta": diff.score_delta,
             "grade_changed": diff.grade_changed,
             "improved": diff.improved,
@@ -400,8 +463,12 @@ def compare(path: str, since: Optional[str], json_fmt: bool) -> None:
     console = Console()
 
     # Header
-    delta_str = f"+{diff.score_delta}" if diff.score_delta > 0 else str(diff.score_delta)
-    delta_color = "green" if diff.score_delta > 0 else "red" if diff.score_delta < 0 else "white"
+    delta_str = (
+        f"+{diff.score_delta}" if diff.score_delta > 0 else str(diff.score_delta)
+    )
+    delta_color = (
+        "green" if diff.score_delta > 0 else "red" if diff.score_delta < 0 else "white"
+    )
 
     console.print()
     console.print(
@@ -410,7 +477,11 @@ def compare(path: str, since: Optional[str], json_fmt: bool) -> None:
             f"[bold]Grade:[/bold] {_color_grade(earlier.grade)} → {_color_grade(later.grade)}"
             + (" [yellow](changed)[/]" if diff.grade_changed else " (same)"),
             title=f"📊 repohealth compare — {path}",
-            border_style="green" if diff.score_delta > 0 else "red" if diff.score_delta < 0 else "blue",
+            border_style="green"
+            if diff.score_delta > 0
+            else "red"
+            if diff.score_delta < 0
+            else "blue",
         )
     )
 
@@ -461,7 +532,9 @@ def init(path: str) -> None:
     generated = config_mod.generate_default_config(config_path)
     console = Console()
     console.print(f"[green]✓[/] Created [bold]{generated}[/]")
-    console.print("[dim]Edit this file to customize checks, weights, and thresholds.[/]")
+    console.print(
+        "[dim]Edit this file to customize checks, weights, and thresholds.[/]"
+    )
 
 
 @main.command(name="list-checks")
@@ -506,10 +579,17 @@ def list_checks() -> None:
 @click.option("--json-output", "-j", "json_fmt", is_flag=True)
 def scan(path: str, threshold: int, json_fmt: bool) -> None:
     """Deprecated: use 'repohealth check' instead."""
-    from click import Context
     ctx = click.get_current_context()
-    ctx.invoke(check, path=path, threshold=threshold, json_fmt=json_fmt,
-               github_action=False, save=False, no_tips=False, config_file=None)
+    ctx.invoke(
+        check,
+        path=path,
+        threshold=threshold,
+        json_fmt=json_fmt,
+        github_action=False,
+        save=False,
+        no_tips=False,
+        config_file=None,
+    )
 
 
 # Register main as the default click command when run as `python -m repohealth.cli`

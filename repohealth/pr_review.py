@@ -58,14 +58,23 @@ def check(
     # Determine the remote URL
     r = subprocess.run(
         ["git", "remote", "get-url", "origin"],
-        capture_output=True, text=True, cwd=repo_path,
+        capture_output=True,
+        text=True,
+        cwd=repo_path,
     )
     if r.returncode != 0:
         return PRReviewResult(
-            total_prs=0, open_prs=0, merged_prs=0, closed_without_merge=0,
-            avg_reviews_per_pr=0.0, avg_days_to_merge=0.0,
-            stale_prs=0, unreviewed_prs=0, large_prs=0,
-            recent_prs=[], error="No GitHub remote found",
+            total_prs=0,
+            open_prs=0,
+            merged_prs=0,
+            closed_without_merge=0,
+            avg_reviews_per_pr=0.0,
+            avg_days_to_merge=0.0,
+            stale_prs=0,
+            unreviewed_prs=0,
+            large_prs=0,
+            recent_prs=[],
+            error="No GitHub remote found",
         )
 
     remote = r.stdout.strip()
@@ -76,29 +85,58 @@ def check(
         parts = remote.rstrip(".git").split(":")[-1].split("/")[-2:]
     else:
         return PRReviewResult(
-            total_prs=0, open_prs=0, merged_prs=0, closed_without_merge=0,
-            avg_reviews_per_pr=0.0, avg_days_to_merge=0.0,
-            stale_prs=0, unreviewed_prs=0, large_prs=0,
-            recent_prs=[], error="Not a GitHub repository",
+            total_prs=0,
+            open_prs=0,
+            merged_prs=0,
+            closed_without_merge=0,
+            avg_reviews_per_pr=0.0,
+            avg_days_to_merge=0.0,
+            stale_prs=0,
+            unreviewed_prs=0,
+            large_prs=0,
+            recent_prs=[],
+            error="Not a GitHub repository",
         )
 
     repo_slug = "/".join(parts)
 
     # Fetch recent PRs via gh api
     api_result = subprocess.run(
-        ["gh", "api", f"repos/{repo_slug}/pulls",
-         "--method", "GET", "-f", "state=all", "-f", "per_page=50",
-         "-f", "sort=updated", "-f", "direction=desc",
-         "--jq", '.[] | "{number}\t{title}\t{state}\t{created_at}\t{merged_at}\t{review_comments}\t{comments}\t{additions}\t{deletions}\t{changed_files}"'],
-        capture_output=True, text=True, cwd=repo_path,
+        [
+            "gh",
+            "api",
+            f"repos/{repo_slug}/pulls",
+            "--method",
+            "GET",
+            "-f",
+            "state=all",
+            "-f",
+            "per_page=50",
+            "-f",
+            "sort=updated",
+            "-f",
+            "direction=desc",
+            "--jq",
+            '.[] | "{number}\t{title}\t{state}\t{created_at}\t{merged_at}\t{review_comments}\t{comments}\t{additions}\t{deletions}\t{changed_files}"',
+        ],
+        capture_output=True,
+        text=True,
+        cwd=repo_path,
     )
 
     if api_result.returncode != 0:
         return PRReviewResult(
-            total_prs=0, open_prs=0, merged_prs=0, closed_without_merge=0,
-            avg_reviews_per_pr=0.0, avg_days_to_merge=0.0,
-            stale_prs=0, unreviewed_prs=0, large_prs=0,
-            recent_prs=[], error=f"gh api failed: {api_result.stderr.strip()[:200]}",
+            total_prs=0,
+            open_prs=0,
+            merged_prs=0,
+            closed_without_merge=0,
+            avg_reviews_per_pr=0.0,
+            avg_days_to_merge=0.0,
+            stale_prs=0,
+            unreviewed_prs=0,
+            large_prs=0,
+            recent_prs=[],
+            error=f"gh api failed: {api_result.stderr.strip()[:200]}",
         )
 
     from datetime import datetime, timezone
@@ -151,10 +189,16 @@ def check(
                 pass
 
         pr = PRMetrics(
-            number=number, title=title[:60], state=state,
-            age_days=age_days, review_count=review_comments + comments,
-            comment_count=comments, additions=additions, deletions=deletions,
-            changed_files=changed_files, days_to_merge=days_to_merge,
+            number=number,
+            title=title[:60],
+            state=state,
+            age_days=age_days,
+            review_count=review_comments + comments,
+            comment_count=comments,
+            additions=additions,
+            deletions=deletions,
+            changed_files=changed_files,
+            days_to_merge=days_to_merge,
         )
         prs.append(pr)
 
@@ -175,7 +219,9 @@ def check(
 
     total = len(prs)
     avg_reviews = total_reviews / total if total > 0 else 0.0
-    avg_merge = sum(days_to_merge_list) / len(days_to_merge_list) if days_to_merge_list else 0.0
+    avg_merge = (
+        sum(days_to_merge_list) / len(days_to_merge_list) if days_to_merge_list else 0.0
+    )
 
     return PRReviewResult(
         total_prs=total,

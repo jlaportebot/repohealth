@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
 
 
@@ -77,9 +77,13 @@ def check(
 
     if r.returncode != 0:
         return CodeChurnResult(
-            top_files=[], total_commits=0, total_insertions=0,
-            total_deletions=0, avg_churn_per_commit=0.0,
-            high_churn_files=0, error=r.stderr.strip()[:200],
+            top_files=[],
+            total_commits=0,
+            total_insertions=0,
+            total_deletions=0,
+            avg_churn_per_commit=0.0,
+            high_churn_files=0,
+            error=r.stderr.strip()[:200],
         )
 
     # Parse numstat output: each line is "insertions\tdeletions\tfilepath"
@@ -112,7 +116,9 @@ def check(
         file_stats[filepath]["deletions"] += dele
 
     # Count total commits
-    commit_count_str = _git(["rev-list", "--count", "HEAD", f"--since={since}"], cwd=repo_path)
+    commit_count_str = _git(
+        ["rev-list", "--count", "HEAD", f"--since={since}"], cwd=repo_path
+    )
     try:
         total_commits = int(commit_count_str)
     except ValueError:
@@ -125,20 +131,28 @@ def check(
         ins = stats["insertions"]
         dele = stats["deletions"]
         churn_score = (ins + dele) / commits if commits > 0 else 0.0
-        churn_list.append(FileChurn(
-            path=filepath,
-            commits=commits,
-            insertions=ins,
-            deletions=dele,
-            churn_score=round(churn_score, 1),
-        ))
+        churn_list.append(
+            FileChurn(
+                path=filepath,
+                commits=commits,
+                insertions=ins,
+                deletions=dele,
+                churn_score=round(churn_score, 1),
+            )
+        )
 
     # Sort by total lines changed descending
     churn_list.sort(key=lambda f: f.total_lines_changed, reverse=True)
     top_files = churn_list[:top_n]
-    high_churn_files = sum(1 for f in churn_list if f.churn_score > high_churn_threshold)
+    high_churn_files = sum(
+        1 for f in churn_list if f.churn_score > high_churn_threshold
+    )
 
-    avg_churn = (total_insertions + total_deletions) / total_commits if total_commits > 0 else 0.0
+    avg_churn = (
+        (total_insertions + total_deletions) / total_commits
+        if total_commits > 0
+        else 0.0
+    )
 
     return CodeChurnResult(
         top_files=top_files,

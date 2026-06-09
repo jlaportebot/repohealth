@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
 
 
@@ -40,7 +40,11 @@ class CommitMessage:
     @property
     def is_compliant(self) -> bool:
         """Check if commit follows conventional commit format."""
-        return self.is_conventional and not self.is_long_subject and not self.ends_with_period
+        return (
+            self.is_conventional
+            and not self.is_long_subject
+            and not self.ends_with_period
+        )
 
 
 @dataclass
@@ -87,17 +91,27 @@ def check(
 
     if r.returncode != 0:
         return CommitConventionsResult(
-            total_commits=0, conventional_count=0, long_subject_count=0,
-            period_end_count=0, trailer_count=0, empty_message_count=0,
-            compliance_rate=0.0, sample_non_compliant=[],
+            total_commits=0,
+            conventional_count=0,
+            long_subject_count=0,
+            period_end_count=0,
+            trailer_count=0,
+            empty_message_count=0,
+            compliance_rate=0.0,
+            sample_non_compliant=[],
             error=r.stderr.strip()[:200],
         )
 
     if not r.stdout.strip():
         return CommitConventionsResult(
-            total_commits=0, conventional_count=0, long_subject_count=0,
-            period_end_count=0, trailer_count=0, empty_message_count=0,
-            compliance_rate=0.0, sample_non_compliant=[],
+            total_commits=0,
+            conventional_count=0,
+            long_subject_count=0,
+            period_end_count=0,
+            trailer_count=0,
+            empty_message_count=0,
+            compliance_rate=0.0,
+            sample_non_compliant=[],
             error="No commits found in range",
         )
 

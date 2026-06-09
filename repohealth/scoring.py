@@ -77,7 +77,9 @@ def score_stale_branches(result: StaleBranchResult) -> CheckReport:
     if n == 0:
         return CheckReport("Stale Branches", 100, 10, "No stale branches", "pass")
     score = max(0, 100 - n * 10)
-    return CheckReport("Stale Branches", score, 10, f"{n} merged branch(es) can be deleted", "warn")
+    return CheckReport(
+        "Stale Branches", score, 10, f"{n} merged branch(es) can be deleted", "warn"
+    )
 
 
 def score_essentials(result: EssentialsResult) -> CheckReport:
@@ -85,7 +87,9 @@ def score_essentials(result: EssentialsResult) -> CheckReport:
     if n_missing == 0:
         return CheckReport("Essentials", 100, 20, "All essentials present", "pass")
     score = max(0, 100 - n_missing * 25)
-    return CheckReport("Essentials", score, 20, f"Missing: {', '.join(result.missing)}", "fail")
+    return CheckReport(
+        "Essentials", score, 20, f"Missing: {', '.join(result.missing)}", "fail"
+    )
 
 
 def score_outdated_deps(result: OutdatedDepsResult) -> CheckReport:
@@ -95,14 +99,18 @@ def score_outdated_deps(result: OutdatedDepsResult) -> CheckReport:
     if n == 0:
         return CheckReport("Dependencies", 100, 15, "All deps up-to-date", "pass")
     score = max(0, 100 - n * 15)
-    detail = ", ".join(f"{d.name} ({d.installed} → {d.latest})" for d in result.outdated)
+    detail = ", ".join(
+        f"{d.name} ({d.installed} → {d.latest})" for d in result.outdated
+    )
     return CheckReport("Dependencies", score, 15, f"{n} outdated: {detail}", "warn")
 
 
 def score_large_files(result: LargeFilesResult) -> CheckReport:
     n = len(result.large_files)
     if n == 0:
-        return CheckReport("Large Files", 100, 10, f"No files ≥{result.threshold_kb}KB", "pass")
+        return CheckReport(
+            "Large Files", 100, 10, f"No files ≥{result.threshold_kb}KB", "pass"
+        )
     score = max(0, 100 - n * 20)
     detail = ", ".join(f"{f.path} ({f.size_kb}KB)" for f in result.large_files)
     return CheckReport("Large Files", score, 10, f"{n} large: {detail}", "warn")
@@ -135,21 +143,30 @@ def score_code_churn(result: CodeChurnResult) -> CheckReport:
     n_high = result.high_churn_files
     if n_high == 0:
         return CheckReport(
-            "Code Churn", 100, 10,
-            f"{result.total_commits} commits, no high-churn files", "pass",
+            "Code Churn",
+            100,
+            10,
+            f"{result.total_commits} commits, no high-churn files",
+            "pass",
             data={"avg_churn": result.avg_churn_per_commit},
         )
     if n_high <= 2:
         score = max(0, 100 - n_high * 10)
         return CheckReport(
-            "Code Churn", score, 10,
-            f"{n_high} high-churn file(s), avg {result.avg_churn_per_commit} lines/commit", "warn",
+            "Code Churn",
+            score,
+            10,
+            f"{n_high} high-churn file(s), avg {result.avg_churn_per_commit} lines/commit",
+            "warn",
             data={"avg_churn": result.avg_churn_per_commit},
         )
     score = max(0, 100 - n_high * 15)
     return CheckReport(
-        "Code Churn", score, 10,
-        f"{n_high} high-churn files — consider refactoring", "fail",
+        "Code Churn",
+        score,
+        10,
+        f"{n_high} high-churn files — consider refactoring",
+        "fail",
         data={"avg_churn": result.avg_churn_per_commit},
     )
 
@@ -157,9 +174,13 @@ def score_code_churn(result: CodeChurnResult) -> CheckReport:
 def score_commit_conventions(result: CommitConventionsResult) -> CheckReport:
     """Score based on commit message convention compliance."""
     if result.error:
-        return CheckReport("Commit Conventions", 75, 10, f"Skipped ({result.error})", "warn")
+        return CheckReport(
+            "Commit Conventions", 75, 10, f"Skipped ({result.error})", "warn"
+        )
     if result.total_commits == 0:
-        return CheckReport("Commit Conventions", 50, 10, "No commits to analyze", "warn")
+        return CheckReport(
+            "Commit Conventions", 50, 10, "No commits to analyze", "warn"
+        )
 
     score = int(result.compliance_rate * 100)
     status = "pass" if score >= 80 else "warn" if score >= 50 else "fail"
@@ -171,7 +192,11 @@ def score_commit_conventions(result: CommitConventionsResult) -> CheckReport:
         detail += f", {result.empty_message_count} empty"
 
     return CheckReport(
-        "Commit Conventions", score, 10, detail, status,
+        "Commit Conventions",
+        score,
+        10,
+        detail,
+        status,
         data={"compliance_rate": result.compliance_rate},
     )
 
@@ -204,7 +229,11 @@ def score_pr_review(result: PRReviewResult) -> CheckReport:
     detail = ", ".join(parts) if parts else "PRs well-managed"
 
     return CheckReport(
-        "PR Review", score, 5, detail, status,
+        "PR Review",
+        score,
+        5,
+        detail,
+        status,
         data={"avg_days_to_merge": result.avg_days_to_merge},
     )
 
@@ -231,7 +260,11 @@ def score_test_coverage(result: TestCoverageResult) -> CheckReport:
         detail += f", {uncovered} files untested"
 
     return CheckReport(
-        "Test Coverage", score, 10, detail, status,
+        "Test Coverage",
+        score,
+        10,
+        detail,
+        status,
         data={
             "file_coverage_pct": result.test_coverage_pct,
             "test_to_code_ratio": result.test_to_code_ratio,
@@ -274,7 +307,11 @@ def score_security(result: SecurityResult) -> CheckReport:
     detail = ", ".join(parts) if parts else "Security infra present"
 
     return CheckReport(
-        "Security", score, 15, detail, status,
+        "Security",
+        score,
+        15,
+        detail,
+        status,
         data={"risk_level": result.risk_level},
     )
 
@@ -296,7 +333,11 @@ def score_doc_coverage(result: DocCoverageResult) -> CheckReport:
     detail = ", ".join(parts)
 
     return CheckReport(
-        "Documentation", score, 5, detail, status,
+        "Documentation",
+        score,
+        5,
+        detail,
+        status,
         data={
             "coverage_pct": result.coverage_pct,
             "module_docstring_pct": result.module_docstring_pct,
@@ -307,7 +348,9 @@ def score_doc_coverage(result: DocCoverageResult) -> CheckReport:
 def score_dependency_graph(result: DependencyGraphResult) -> CheckReport:
     """Score based on dependency graph analysis."""
     if result.error:
-        return CheckReport("Dependency Graph", 75, 5, f"Skipped ({result.error})", "warn")
+        return CheckReport(
+            "Dependency Graph", 75, 5, f"Skipped ({result.error})", "warn"
+        )
 
     score = 100
     parts = []
@@ -327,10 +370,18 @@ def score_dependency_graph(result: DependencyGraphResult) -> CheckReport:
 
     score = max(0, score)
     status = "pass" if score >= 80 else "warn" if score >= 50 else "fail"
-    detail = ", ".join(parts) if parts else f"{result.total_runtime} runtime deps, well-managed"
+    detail = (
+        ", ".join(parts)
+        if parts
+        else f"{result.total_runtime} runtime deps, well-managed"
+    )
 
     return CheckReport(
-        "Dependency Graph", score, 5, detail, status,
+        "Dependency Graph",
+        score,
+        5,
+        detail,
+        status,
         data={
             "runtime": result.total_runtime,
             "dev": result.total_dev,
@@ -355,7 +406,11 @@ def score_tech_debt(result: TechDebtResult) -> CheckReport:
     detail = ", ".join(parts) if parts else "No significant debt markers"
 
     return CheckReport(
-        "Tech Debt", score, 5, detail, status,
+        "Tech Debt",
+        score,
+        5,
+        detail,
+        status,
         data={"debt_score": result.debt_score},
     )
 

@@ -7,7 +7,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 
 @dataclass
@@ -73,7 +73,6 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
     # Very basic parsing — find [project] dependencies and [project.optional-dependencies]
     in_project_deps = False
     in_optional = False
-    in_dev_deps = False
     current_optional_group = ""
     current_section = ""
 
@@ -90,7 +89,7 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
             current_section = "optional"
             in_project_deps = False
             # Extract group name
-            match = re.match(r'\[project\.optional-dependencies\.(\w+)\]', stripped)
+            match = re.match(r"\[project\.optional-dependencies\.(\w+)\]", stripped)
             current_optional_group = match.group(1) if match else "optional"
             in_optional = True
             continue
@@ -112,7 +111,7 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
         if current_section == "project" and stripped.startswith("dependencies"):
             in_project_deps = True
             # Check if deps are on the same line
-            match = re.match(r'dependencies\s*=\s*\[(.*)\]', stripped)
+            match = re.match(r"dependencies\s*=\s*\[(.*)\]", stripped)
             if match:
                 inline = match.group(1)
                 for dep_match in re.finditer(r'"([^"]+)"', inline):
@@ -133,7 +132,12 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
         if in_optional and stripped.startswith('"'):
             dep_match = re.match(r'"([^"]+)"', stripped)
             if dep_match:
-                is_dev = current_optional_group.lower() in ("dev", "test", "testing", "development")
+                is_dev = current_optional_group.lower() in (
+                    "dev",
+                    "test",
+                    "testing",
+                    "development",
+                )
                 _add_dep(deps, dep_match.group(1), current_optional_group, is_dev, True)
             continue
 
@@ -142,7 +146,7 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
             continue
 
         if current_section == "build" and stripped.startswith("requires"):
-            match = re.match(r'requires\s*=\s*\[(.*)\]', stripped)
+            match = re.match(r"requires\s*=\s*\[(.*)\]", stripped)
             if match:
                 inline = match.group(1)
                 for dep_match in re.finditer(r'"([^"]+)"', inline):
@@ -160,22 +164,26 @@ def _add_dep(
 ) -> None:
     """Parse a dependency spec like 'click>=8.0,<9.0' and add it."""
     # Split name from version spec
-    match = re.match(r'([a-zA-Z0-9_.-]+)\s*(.*)', spec.strip())
+    match = re.match(r"([a-zA-Z0-9_.-]+)\s*(.*)", spec.strip())
     if not match:
         return
     name = match.group(1).strip()
     version_spec = match.group(2).strip()
 
-    deps.append(DependencyInfo(
-        name=name,
-        version_spec=version_spec,
-        is_dev=is_dev,
-        is_optional=is_optional,
-        category=category,
-    ))
+    deps.append(
+        DependencyInfo(
+            name=name,
+            version_spec=version_spec,
+            is_dev=is_dev,
+            is_optional=is_optional,
+            category=category,
+        )
+    )
 
 
-def _parse_requirements_txt(filepath: Path, is_dev: bool = False) -> List[DependencyInfo]:
+def _parse_requirements_txt(
+    filepath: Path, is_dev: bool = False
+) -> List[DependencyInfo]:
     """Parse requirements.txt format."""
     deps: List[DependencyInfo] = []
     try:
@@ -188,15 +196,17 @@ def _parse_requirements_txt(filepath: Path, is_dev: bool = False) -> List[Depend
         if not line or line.startswith("#") or line.startswith("-"):
             continue
 
-        match = re.match(r'([a-zA-Z0-9_.-]+)\s*(.*)', line)
+        match = re.match(r"([a-zA-Z0-9_.-]+)\s*(.*)", line)
         if match:
-            deps.append(DependencyInfo(
-                name=match.group(1),
-                version_spec=match.group(2).strip(),
-                is_dev=is_dev,
-                is_optional=False,
-                category="dev" if is_dev else "runtime",
-            ))
+            deps.append(
+                DependencyInfo(
+                    name=match.group(1),
+                    version_spec=match.group(2).strip(),
+                    is_dev=is_dev,
+                    is_optional=False,
+                    category="dev" if is_dev else "runtime",
+                )
+            )
 
     return deps
 
@@ -205,28 +215,110 @@ def _find_third_party_imports(base: Path) -> Set[str]:
     """Scan Python source files to find third-party imports actually used."""
     imports: Set[str] = set()
     stdlib_names = {
-        "os", "sys", "re", "json", "ast", "io", "math", "time",
-        "datetime", "pathlib", "subprocess", "collections", "typing",
-        "functools", "itertools", "operator", "dataclasses", "abc",
-        "contextlib", "copy", "hashlib", "hmac", "logging", "pprint",
-        "tempfile", "traceback", "unittest", "argparse", "csv",
-        "email", "html", "http", "xml", "urllib", "socket",
-        "threading", "multiprocessing", "queue", "struct", "random",
-        "secrets", "shutil", "signal", "stat", "string", "textwrap",
-        "warnings", "weakref", "decimal", "fractions", "enum",
-        "importlib", "inspect", "dis", "codecs", "gettext",
-        "locale", "platform", "gc", "atexit", "fnmatch", "glob",
-        "linecache", "fileinput", "selectors", "mmap", "zlib",
-        "gzip", "bz2", "lzma", "zipfile", "tarfile", "pickle",
-        "shelve", "sqlite3", "heapq", "bisect", "array",
-        "types", "pdb", "profile", "cProfile", "timeit",
+        "os",
+        "sys",
+        "re",
+        "json",
+        "ast",
+        "io",
+        "math",
+        "time",
+        "datetime",
+        "pathlib",
+        "subprocess",
+        "collections",
+        "typing",
+        "functools",
+        "itertools",
+        "operator",
+        "dataclasses",
+        "abc",
+        "contextlib",
+        "copy",
+        "hashlib",
+        "hmac",
+        "logging",
+        "pprint",
+        "tempfile",
+        "traceback",
+        "unittest",
+        "argparse",
+        "csv",
+        "email",
+        "html",
+        "http",
+        "xml",
+        "urllib",
+        "socket",
+        "threading",
+        "multiprocessing",
+        "queue",
+        "struct",
+        "random",
+        "secrets",
+        "shutil",
+        "signal",
+        "stat",
+        "string",
+        "textwrap",
+        "warnings",
+        "weakref",
+        "decimal",
+        "fractions",
+        "enum",
+        "importlib",
+        "inspect",
+        "dis",
+        "codecs",
+        "gettext",
+        "locale",
+        "platform",
+        "gc",
+        "atexit",
+        "fnmatch",
+        "glob",
+        "linecache",
+        "fileinput",
+        "selectors",
+        "mmap",
+        "zlib",
+        "gzip",
+        "bz2",
+        "lzma",
+        "zipfile",
+        "tarfile",
+        "pickle",
+        "shelve",
+        "sqlite3",
+        "heapq",
+        "bisect",
+        "array",
+        "types",
+        "pdb",
+        "profile",
+        "cProfile",
+        "timeit",
     }
 
     for dirpath, dirnames, filenames in os.walk(base):
-        dirnames[:] = [d for d in dirnames
-                       if d not in {".git", "__pycache__", "node_modules", ".venv", "venv",
-                                    ".tox", ".mypy_cache", ".pytest_cache", "dist", "build"}
-                       and not d.startswith(".")]
+        dirnames[:] = [
+            d
+            for d in dirnames
+            if d
+            not in {
+                ".git",
+                "__pycache__",
+                "node_modules",
+                ".venv",
+                "venv",
+                ".tox",
+                ".mypy_cache",
+                ".pytest_cache",
+                "dist",
+                "build",
+            }
+            and not d.startswith(".")
+        ]
         for fname in filenames:
             if not fname.endswith(".py") or fname == "__init__.py":
                 continue
@@ -288,11 +380,22 @@ def check(repo_path: str | None = None) -> DependencyGraphResult:
 
     if not all_deps:
         return DependencyGraphResult(
-            runtime_deps=[], dev_deps=[], optional_deps=[], build_deps=[],
-            total_runtime=0, total_dev=0, total_optional=0, total_build=0,
-            dep_file=dep_file, has_version_pins=0, has_upper_bounds=0,
-            has_wildcards=0, license_types=set(), imports_used=set(),
-            unused_deps=[], missing_deps=[],
+            runtime_deps=[],
+            dev_deps=[],
+            optional_deps=[],
+            build_deps=[],
+            total_runtime=0,
+            total_dev=0,
+            total_optional=0,
+            total_build=0,
+            dep_file=dep_file,
+            has_version_pins=0,
+            has_upper_bounds=0,
+            has_wildcards=0,
+            license_types=set(),
+            imports_used=set(),
+            unused_deps=[],
+            missing_deps=[],
             error="No dependency file found",
         )
 

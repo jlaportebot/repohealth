@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
@@ -44,7 +44,8 @@ def check(repo_path: str | None = None) -> EssentialsResult:
 
     # CI check
     has_ci = any(
-        (base / indicator).exists() if not indicator.endswith(".yml") and not indicator.endswith(".txt")
+        (base / indicator).exists()
+        if not indicator.endswith(".yml") and not indicator.endswith(".txt")
         else (base / indicator).is_file()
         for indicator in CI_INDICATORS
     )

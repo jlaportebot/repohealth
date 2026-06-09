@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 # Default history directory
@@ -129,8 +128,12 @@ def compare_entries(earlier: HistoryEntry, later: HistoryEntry) -> HistoryDiff:
     grade_changed = earlier.grade != later.grade
 
     # Build check lookup dicts
-    earlier_checks = {c["name"]: c.get("score", 0) for c in earlier.checks if isinstance(c, dict)}
-    later_checks = {c["name"]: c.get("score", 0) for c in later.checks if isinstance(c, dict)}
+    earlier_checks = {
+        c["name"]: c.get("score", 0) for c in earlier.checks if isinstance(c, dict)
+    }
+    later_checks = {
+        c["name"]: c.get("score", 0) for c in later.checks if isinstance(c, dict)
+    }
 
     # Compute deltas
     check_deltas: Dict[str, int] = {}

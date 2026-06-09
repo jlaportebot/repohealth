@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ast
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -56,9 +56,20 @@ IMPORTANT_README_SECTIONS = [
 
 
 SKIP_DIRS = {
-    ".git", "__pycache__", "node_modules", ".venv", "venv",
-    ".tox", ".mypy_cache", ".pytest_cache", "dist", "build",
-    ".eggs", ".idea", ".vscode", ".hg",
+    ".git",
+    "__pycache__",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".tox",
+    ".mypy_cache",
+    ".pytest_cache",
+    "dist",
+    "build",
+    ".eggs",
+    ".idea",
+    ".vscode",
+    ".hg",
 }
 
 
@@ -70,8 +81,10 @@ def _analyze_python_module(filepath: Path, base: Path) -> ModuleDocInfo:
     except (SyntaxError, OSError):
         return ModuleDocInfo(
             path=str(filepath.relative_to(base)),
-            total_definitions=0, documented_definitions=0,
-            has_module_docstring=False, missing_docstrings=[],
+            total_definitions=0,
+            documented_definitions=0,
+            has_module_docstring=False,
+            missing_docstrings=[],
         )
 
     has_module_doc = ast.get_docstring(tree) is not None
@@ -131,7 +144,10 @@ def _analyze_readme(base: Path) -> Tuple[List[str], List[str]]:
         # Check for markdown headers or RST underlines
         if f"## {section}" in content or f"# {section}" in content:
             found.append(section)
-        elif f"{section}\n{'=' * len(section)}" in content or f"{section}\n{'-' * len(section)}" in content:
+        elif (
+            f"{section}\n{'=' * len(section)}" in content
+            or f"{section}\n{'-' * len(section)}" in content
+        ):
             found.append(section)
         elif section in content:
             found.append(section)
@@ -159,7 +175,9 @@ def check(repo_path: str | None = None) -> DocCoverageResult:
     all_missing: List[str] = []
 
     for dirpath, dirnames, filenames in os.walk(base):
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+        dirnames[:] = [
+            d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")
+        ]
 
         for fname in filenames:
             if not fname.endswith(".py") or fname == "__init__.py":
@@ -192,26 +210,41 @@ def check(repo_path: str | None = None) -> DocCoverageResult:
 
     # Check for docs directory
     has_api_docs = any(
-        (base / d).exists()
-        for d in ["docs", "doc", "documentation", "api_docs"]
+        (base / d).exists() for d in ["docs", "doc", "documentation", "api_docs"]
     )
 
     # Check for changelog
     has_changelog = any(
         (base / f).exists()
-        for f in ["CHANGELOG.md", "CHANGELOG.rst", "CHANGELOG.txt", "CHANGELOG", "HISTORY.md"]
+        for f in [
+            "CHANGELOG.md",
+            "CHANGELOG.rst",
+            "CHANGELOG.txt",
+            "CHANGELOG",
+            "HISTORY.md",
+        ]
     )
 
     # Check for contributing guide
     has_contributing = any(
         (base / f).exists()
-        for f in ["CONTRIBUTING.md", "CONTRIBUTING.rst", "CONTRIBUTING.txt", "CONTRIBUTING"]
+        for f in [
+            "CONTRIBUTING.md",
+            "CONTRIBUTING.rst",
+            "CONTRIBUTING.txt",
+            "CONTRIBUTING",
+        ]
     )
 
     # Check for code of conduct
     has_coc = any(
         (base / f).exists()
-        for f in ["CODE_OF_CONDUCT.md", "CODE_OF_CONDUCT.rst", "CODE_OF_CONDUCT.txt", "CODE_OF_CONDUCT"]
+        for f in [
+            "CODE_OF_CONDUCT.md",
+            "CODE_OF_CONDUCT.rst",
+            "CODE_OF_CONDUCT.txt",
+            "CODE_OF_CONDUCT",
+        ]
     )
 
     return DocCoverageResult(

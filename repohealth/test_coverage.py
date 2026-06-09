@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -49,10 +49,15 @@ class TestCoverageResult:
 
 # Test file patterns
 TEST_FILE_PATTERNS = [
-    "test_", "_test.py", "tests.py",
+    "test_",
+    "_test.py",
+    "tests.py",
 ]
 TEST_DIR_PATTERNS = [
-    "tests", "test", "spec", "__tests__",
+    "tests",
+    "test",
+    "spec",
+    "__tests__",
 ]
 
 # Source file extensions to consider
@@ -60,9 +65,18 @@ SOURCE_EXTENSIONS = {".py"}
 
 # Directories to skip
 SKIP_DIRS = {
-    ".git", "__pycache__", "node_modules", ".venv", "venv",
-    ".tox", ".mypy_cache", ".pytest_cache", "dist", "build",
-    ".eggs", "*.egg-info",
+    ".git",
+    "__pycache__",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".tox",
+    ".mypy_cache",
+    ".pytest_cache",
+    "dist",
+    "build",
+    ".eggs",
+    "*.egg-info",
 }
 
 
@@ -74,7 +88,9 @@ def _count_test_items(filepath: Path) -> Tuple[int, int]:
         content = filepath.read_text(errors="ignore")
         for line in content.splitlines():
             stripped = line.strip()
-            if stripped.startswith("def test_") or stripped.startswith("async def test_"):
+            if stripped.startswith("def test_") or stripped.startswith(
+                "async def test_"
+            ):
                 test_funcs += 1
             elif stripped.startswith("class Test") and ":" in stripped:
                 test_classes += 1
@@ -86,17 +102,29 @@ def _count_test_items(filepath: Path) -> Tuple[int, int]:
 def _is_test_file(filepath: Path) -> bool:
     """Check if a file is a test file."""
     name = filepath.name
-    return any(name.startswith(p.rstrip("_").rstrip("s")) or name.startswith(p)
-               for p in ["test_", "test"])
+    return any(
+        name.startswith(p.rstrip("_").rstrip("s")) or name.startswith(p)
+        for p in ["test_", "test"]
+    )
     # Simpler check
-    return (name.startswith("test_") or name.endswith("_test.py") or
-            name == "tests.py" or filepath.parent.name in TEST_DIR_PATTERNS)
+    return (
+        name.startswith("test_")
+        or name.endswith("_test.py")
+        or name == "tests.py"
+        or filepath.parent.name in TEST_DIR_PATTERNS
+    )
 
 
-def _has_corresponding_test(source_path: str, test_dirs: List[Path], source_root: Path) -> bool:
+def _has_corresponding_test(
+    source_path: str, test_dirs: List[Path], source_root: Path
+) -> bool:
     """Check if a source file has a corresponding test file."""
     # Derive expected test paths
-    rel = Path(source_path).relative_to(source_root) if str(source_path).startswith(str(source_root)) else None
+    rel = (
+        Path(source_path).relative_to(source_root)
+        if str(source_path).startswith(str(source_root))
+        else None
+    )
     if rel is None:
         return False
 
@@ -121,7 +149,9 @@ def _find_test_dirs(base: Path) -> List[Path]:
     test_dirs: List[Path] = []
     for dirpath, dirnames, filenames in os.walk(base):
         # Skip hidden and common non-source dirs
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+        dirnames[:] = [
+            d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")
+        ]
         if dirpath == base:
             dirname = ""
         else:
@@ -149,11 +179,18 @@ def check(repo_path: str | None = None) -> TestCoverageResult:
 
     if not any([has_pyproject, has_setup, has_requirements]):
         return TestCoverageResult(
-            total_source_files=0, total_test_files=0,
-            source_lines=0, test_lines=0, test_to_code_ratio=0.0,
-            files_with_tests=0, files_without_tests=0,
-            test_coverage_pct=0.0, test_files=[], uncovered_source=[],
-            test_framework="none", has_pytest_cov=False,
+            total_source_files=0,
+            total_test_files=0,
+            source_lines=0,
+            test_lines=0,
+            test_to_code_ratio=0.0,
+            files_with_tests=0,
+            files_without_tests=0,
+            test_coverage_pct=0.0,
+            test_files=[],
+            uncovered_source=[],
+            test_framework="none",
+            has_pytest_cov=False,
             error="Not a Python project (no pyproject.toml/setup.py/requirements.txt)",
         )
 
@@ -172,8 +209,9 @@ def check(repo_path: str | None = None) -> TestCoverageResult:
 
     for dirpath, dirnames, filenames in os.walk(base):
         # Skip directories
-        dirnames[:] = [d for d in dirnames
-                       if d not in SKIP_DIRS and not d.startswith(".")]
+        dirnames[:] = [
+            d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")
+        ]
 
         for fname in filenames:
             if not fname.endswith(".py"):
@@ -187,20 +225,24 @@ def check(repo_path: str | None = None) -> TestCoverageResult:
 
             # Is it a test file?
             is_test = (
-                fname.startswith("test_") or
-                fname.endswith("_test.py") or
-                fname == "tests.py" or
-                any(part in TEST_DIR_PATTERNS for part in fpath.relative_to(base).parts)
+                fname.startswith("test_")
+                or fname.endswith("_test.py")
+                or fname == "tests.py"
+                or any(
+                    part in TEST_DIR_PATTERNS for part in fpath.relative_to(base).parts
+                )
             )
 
             if is_test:
                 func_count, class_count = _count_test_items(fpath)
-                test_files.append(TestFileInfo(
-                    path=str(fpath.relative_to(base)),
-                    test_functions=func_count,
-                    test_classes=class_count,
-                    lines=line_count,
-                ))
+                test_files.append(
+                    TestFileInfo(
+                        path=str(fpath.relative_to(base)),
+                        test_functions=func_count,
+                        test_classes=class_count,
+                        lines=line_count,
+                    )
+                )
                 test_lines += line_count
 
                 # Detect framework
@@ -216,11 +258,13 @@ def check(repo_path: str | None = None) -> TestCoverageResult:
                 # Skip __init__.py and very small files
                 if fname == "__init__.py":
                     continue
-                source_files.append(SourceFileInfo(
-                    path=str(fpath.relative_to(base)),
-                    lines=line_count,
-                    has_corresponding_test=False,
-                ))
+                source_files.append(
+                    SourceFileInfo(
+                        path=str(fpath.relative_to(base)),
+                        lines=line_count,
+                        has_corresponding_test=False,
+                    )
+                )
                 source_lines += line_count
 
     # Check which source files have corresponding tests
@@ -252,7 +296,8 @@ def check(repo_path: str | None = None) -> TestCoverageResult:
     # Check for pytest-cov
     cov_check = subprocess.run(
         ["python3", "-c", "import pytest_cov"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     has_cov = cov_check.returncode == 0
 

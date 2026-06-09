@@ -1,11 +1,8 @@
 """Comprehensive tests for repohealth v0.2.0 — all checks, CLI, history, config."""
 
 import json
-import os
 import subprocess
-import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -17,16 +14,33 @@ import pytest
 def git_repo(tmp_path: Path):
     """Create a minimal git repo for testing."""
     subprocess.run(["git", "init"], cwd=str(tmp_path), check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=str(tmp_path), check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=str(tmp_path), check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@test.com"],
+        cwd=str(tmp_path),
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test"],
+        cwd=str(tmp_path),
+        check=True,
+        capture_output=True,
+    )
     readme = tmp_path / "README.md"
     readme.write_text("# Test\n")
     lic = tmp_path / "LICENSE"
     lic.write_text("MIT\n")
     gi = tmp_path / ".gitignore"
     gi.write_text("__pycache__/\n")
-    subprocess.run(["git", "add", "."], cwd=str(tmp_path), check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "feat: initial commit"], cwd=str(tmp_path), check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], cwd=str(tmp_path), check=True, capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "feat: initial commit"],
+        cwd=str(tmp_path),
+        check=True,
+        capture_output=True,
+    )
     return tmp_path
 
 
@@ -92,8 +106,15 @@ dependencies = ["click>=8.0", "rich>=13.0"]
 dev = ["pytest>=7.0", "pytest-cov"]
 """)
 
-    subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "feat: add project structure"], cwd=str(git_repo), check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "feat: add project structure"],
+        cwd=str(git_repo),
+        check=True,
+        capture_output=True,
+    )
     return git_repo
 
 
@@ -103,11 +124,13 @@ dev = ["pytest>=7.0", "pytest-cov"]
 class TestDirtyTree:
     def test_clean_repo(self, git_repo):
         from repohealth.dirty_tree import check
+
         result = check(str(git_repo))
         assert not result.is_dirty
 
     def test_untracked_file(self, git_repo):
         from repohealth.dirty_tree import check
+
         (git_repo / "newfile.py").write_text("x = 1\n")
         result = check(str(git_repo))
         assert result.is_dirty
@@ -115,6 +138,7 @@ class TestDirtyTree:
 
     def test_unstaged_change(self, git_repo):
         from repohealth.dirty_tree import check
+
         readme = git_repo / "README.md"
         readme.write_text("# Modified\n")
         result = check(str(git_repo))
@@ -124,12 +148,14 @@ class TestDirtyTree:
 class TestEssentials:
     def test_healthy_repo(self, git_repo):
         from repohealth.essentials import check
+
         result = check(str(git_repo))
         assert "README" in result.present
         assert "LICENSE" in result.present
 
     def test_missing_files(self, tmp_path):
         from repohealth.essentials import check
+
         result = check(str(tmp_path))
         assert "README" in result.missing
         assert "LICENSE" in result.missing
@@ -138,6 +164,7 @@ class TestEssentials:
 class TestLastCommit:
     def test_recent_commit(self, git_repo):
         from repohealth.last_commit import check
+
         result = check(str(git_repo))
         assert result.days_since_last_commit >= 0
 
@@ -145,6 +172,7 @@ class TestLastCommit:
 class TestStaleBranches:
     def test_no_stale(self, git_repo):
         from repohealth.stale_branches import check
+
         result = check(str(git_repo))
         assert len(result.stale_branches) == 0
 
@@ -155,12 +183,20 @@ class TestStaleBranches:
 class TestCodeChurn:
     def test_basic_churn(self, git_repo):
         from repohealth.code_churn import check
+
         # Add more commits to create churn
         readme = git_repo / "README.md"
         for i in range(3):
             readme.write_text(f"# Test v{i}\n")
-            subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
-            subprocess.run(["git", "commit", "-m", f"update readme v{i}"], cwd=str(git_repo), check=True, capture_output=True)
+            subprocess.run(
+                ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
+            )
+            subprocess.run(
+                ["git", "commit", "-m", f"update readme v{i}"],
+                cwd=str(git_repo),
+                check=True,
+                capture_output=True,
+            )
 
         result = check(str(git_repo))
         assert result.total_commits >= 4
@@ -168,6 +204,7 @@ class TestCodeChurn:
 
     def test_empty_repo(self, tmp_path):
         from repohealth.code_churn import check
+
         result = check(str(tmp_path))
         assert result.error is not None
 
@@ -175,6 +212,7 @@ class TestCodeChurn:
 class TestCommitConventions:
     def test_conventional_commits(self, git_repo):
         from repohealth.commit_conventions import check
+
         result = check(str(git_repo))
         assert result.total_commits >= 1
         # Our test fixture uses conventional commits
@@ -182,16 +220,25 @@ class TestCommitConventions:
 
     def test_no_commits(self, tmp_path):
         from repohealth.commit_conventions import check
+
         result = check(str(tmp_path))
         assert result.error is not None or result.total_commits == 0
 
     def test_non_conventional(self, git_repo):
         """Add a non-conventional commit and check detection."""
         (git_repo / "extra.txt").write_text("stuff\n")
-        subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
-        subprocess.run(["git", "commit", "-m", "random update"], cwd=str(git_repo), check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
+        )
+        subprocess.run(
+            ["git", "commit", "-m", "random update"],
+            cwd=str(git_repo),
+            check=True,
+            capture_output=True,
+        )
 
         from repohealth.commit_conventions import check
+
         result = check(str(git_repo))
         assert result.total_commits >= 2
         # At least one should be non-conventional
@@ -201,6 +248,7 @@ class TestCommitConventions:
 class TestTestCoverage:
     def test_python_project(self, python_repo):
         from repohealth.test_coverage import check
+
         result = check(str(python_repo))
         assert result.total_source_files > 0
         assert result.total_test_files > 0
@@ -209,6 +257,7 @@ class TestTestCoverage:
 
     def test_non_python_project(self, tmp_path):
         from repohealth.test_coverage import check
+
         result = check(str(tmp_path))
         assert result.error is not None
 
@@ -216,12 +265,14 @@ class TestTestCoverage:
 class TestSecurity:
     def test_clean_repo(self, git_repo):
         from repohealth.security import check
+
         result = check(str(git_repo))
         assert len(result.secret_findings) == 0 or len(result.secret_findings) <= 3
         assert result.risk_level in ("low", "medium", "high", "critical")
 
     def test_hardcoded_password(self, tmp_path):
         from repohealth.security import check
+
         (tmp_path / "config.py").write_text('password = "super_secret_123"\n')
         (tmp_path / ".gitignore").write_text("*.py\n")
         result = check(str(tmp_path))
@@ -230,12 +281,14 @@ class TestSecurity:
 
     def test_dangerous_env_file(self, tmp_path):
         from repohealth.security import check
+
         (tmp_path / ".env").write_text("SECRET_KEY=abc123\n")
         result = check(str(tmp_path))
         assert ".env" in result.dangerous_files_present
 
     def test_security_infra(self, git_repo):
         from repohealth.security import check
+
         # Create SECURITY.md
         (git_repo / "SECURITY.md").write_text("# Security Policy\n")
         result = check(str(git_repo))
@@ -245,6 +298,7 @@ class TestSecurity:
 class TestDocCoverage:
     def test_well_documented(self, python_repo):
         from repohealth.doc_coverage import check
+
         result = check(str(python_repo))
         assert result.total_definitions > 0
         assert result.documented_definitions > 0
@@ -252,12 +306,14 @@ class TestDocCoverage:
 
     def test_readme_sections(self, python_repo):
         from repohealth.doc_coverage import check
+
         result = check(str(python_repo))
         # README exists but may be minimal
         assert isinstance(result.readme_sections, list)
 
     def test_missing_docs(self, tmp_path):
         from repohealth.doc_coverage import check
+
         # Create a Python file without docstrings
         src = tmp_path / "src.py"
         src.write_text("def foo():\n    pass\n\ndef bar():\n    pass\n")
@@ -269,18 +325,21 @@ class TestDocCoverage:
 class TestDependencyGraph:
     def test_pyproject_deps(self, python_repo):
         from repohealth.dependency_graph import check
+
         result = check(str(python_repo))
         assert result.total_runtime > 0
         assert result.dep_file == "pyproject.toml"
 
     def test_requirements_txt(self, tmp_path):
         from repohealth.dependency_graph import check
+
         (tmp_path / "requirements.txt").write_text("click>=8.0\nrich>=13.0\n")
         result = check(str(tmp_path))
         assert result.total_runtime == 2
 
     def test_no_deps(self, tmp_path):
         from repohealth.dependency_graph import check
+
         result = check(str(tmp_path))
         assert result.error is not None
 
@@ -288,17 +347,16 @@ class TestDependencyGraph:
 class TestTechDebt:
     def test_no_debt(self, git_repo):
         from repohealth.tech_debt import check
+
         result = check(str(git_repo))
         assert result.total_markers >= 0  # May find markers in any code
         assert result.debt_score >= 0
 
     def test_with_todos(self, tmp_path):
         from repohealth.tech_debt import check
+
         (tmp_path / "code.py").write_text(
-            "# TODO: implement this\n"
-            "# FIXME: this is broken\n"
-            "def foo():\n"
-            "    pass\n"
+            "# TODO: implement this\n# FIXME: this is broken\ndef foo():\n    pass\n"
         )
         result = check(str(tmp_path))
         assert result.total_markers >= 2
@@ -307,6 +365,7 @@ class TestTechDebt:
 
     def test_complexity(self, tmp_path):
         from repohealth.tech_debt import check
+
         # Create a complex function
         (tmp_path / "complex.py").write_text(
             "def complex_func(x):\n"
@@ -320,6 +379,7 @@ class TestTechDebt:
 class TestPRReview:
     def test_no_github_remote(self, tmp_path):
         from repohealth.pr_review import check
+
         result = check(str(tmp_path))
         assert result.error is not None
 
@@ -341,10 +401,14 @@ class TestScoring:
             path="/tmp/test",
             dirty=DirtyTreeResult(False, False, False, [], False),
             stale=StaleBranchResult("main", [], 0),
-            essentials=EssentialsResult(missing=[], present=["README", "LICENSE", ".gitignore", "CI"]),
+            essentials=EssentialsResult(
+                missing=[], present=["README", "LICENSE", ".gitignore", "CI"]
+            ),
             deps=OutdatedDepsResult(source="pyproject.toml", outdated=[]),
             large=LargeFilesResult(threshold_kb=1024, large_files=[]),
-            activity=LastCommitResult(last_commit_date="2026-05-25", days_since_last_commit=0),
+            activity=LastCommitResult(
+                last_commit_date="2026-05-25", days_since_last_commit=0
+            ),
         )
         assert report.score == 100
         assert report.grade == "A"
@@ -365,25 +429,44 @@ class TestScoring:
             path="/tmp/test",
             dirty=DirtyTreeResult(False, False, False, [], False),
             stale=StaleBranchResult("main", [], 0),
-            essentials=EssentialsResult(missing=[], present=["README", "LICENSE", ".gitignore", "CI"]),
+            essentials=EssentialsResult(
+                missing=[], present=["README", "LICENSE", ".gitignore", "CI"]
+            ),
             deps=OutdatedDepsResult(source="pyproject.toml", outdated=[]),
             large=LargeFilesResult(threshold_kb=1024, large_files=[]),
-            activity=LastCommitResult(last_commit_date="2026-05-25", days_since_last_commit=0),
+            activity=LastCommitResult(
+                last_commit_date="2026-05-25", days_since_last_commit=0
+            ),
             code_churn=CodeChurnResult(
-                top_files=[], total_commits=10, total_insertions=500,
-                total_deletions=100, avg_churn_per_commit=60.0,
+                top_files=[],
+                total_commits=10,
+                total_insertions=500,
+                total_deletions=100,
+                avg_churn_per_commit=60.0,
                 high_churn_files=0,
             ),
             commit_conventions=CommitConventionsResult(
-                total_commits=10, conventional_count=10, long_subject_count=0,
-                period_end_count=0, trailer_count=5, empty_message_count=0,
-                compliance_rate=1.0, sample_non_compliant=[],
+                total_commits=10,
+                conventional_count=10,
+                long_subject_count=0,
+                period_end_count=0,
+                trailer_count=5,
+                empty_message_count=0,
+                compliance_rate=1.0,
+                sample_non_compliant=[],
             ),
             tech_debt=TechDebtResult(
-                total_markers=0, markers_by_type={}, debt_items=[],
-                high_complexity_functions=[], max_complexity=0,
-                avg_complexity=0.0, total_functions=5, long_functions=0,
-                deprecated_count=0, noqa_count=0, debt_score=0,
+                total_markers=0,
+                markers_by_type={},
+                debt_items=[],
+                high_complexity_functions=[],
+                max_complexity=0,
+                avg_complexity=0.0,
+                total_functions=5,
+                long_functions=0,
+                deprecated_count=0,
+                noqa_count=0,
+                debt_score=0,
             ),
         )
         assert report.score > 0
@@ -402,10 +485,14 @@ class TestScoring:
             path="/tmp/test",
             dirty=DirtyTreeResult(False, False, False, [], False),
             stale=StaleBranchResult("main", [], 0),
-            essentials=EssentialsResult(missing=[], present=["README", "LICENSE", ".gitignore", "CI"]),
+            essentials=EssentialsResult(
+                missing=[], present=["README", "LICENSE", ".gitignore", "CI"]
+            ),
             deps=OutdatedDepsResult(source="pyproject.toml", outdated=[]),
             large=LargeFilesResult(threshold_kb=1024, large_files=[]),
-            activity=LastCommitResult(last_commit_date="2026-05-25", days_since_last_commit=0),
+            activity=LastCommitResult(
+                last_commit_date="2026-05-25", days_since_last_commit=0
+            ),
             disabled_checks=["large_files"],
         )
         check_names = [c.name for c in report.checks]
@@ -418,11 +505,20 @@ class TestScoring:
 class TestHistory:
     def test_save_and_load(self, tmp_path):
         from repohealth.history import save_report, load_history
+
         report_data = {
             "path": str(tmp_path),
             "score": 85,
             "grade": "B",
-            "checks": [{"name": "Test", "score": 85, "weight": 10, "detail": "ok", "status": "pass"}],
+            "checks": [
+                {
+                    "name": "Test",
+                    "score": 85,
+                    "weight": 10,
+                    "detail": "ok",
+                    "status": "pass",
+                }
+            ],
         }
         filepath = save_report(report_data, repo_path=str(tmp_path))
         assert filepath.exists()
@@ -434,14 +530,27 @@ class TestHistory:
 
     def test_compare_entries(self):
         from repohealth.history import HistoryEntry, compare_entries
+
         earlier = HistoryEntry(
             timestamp="2026-05-01T00:00:00",
             path="/tmp/test",
             score=70,
             grade="C",
             checks=[
-                {"name": "Security", "score": 50, "weight": 15, "detail": "issues", "status": "warn"},
-                {"name": "Tests", "score": 90, "weight": 10, "detail": "ok", "status": "pass"},
+                {
+                    "name": "Security",
+                    "score": 50,
+                    "weight": 15,
+                    "detail": "issues",
+                    "status": "warn",
+                },
+                {
+                    "name": "Tests",
+                    "score": 90,
+                    "weight": 10,
+                    "detail": "ok",
+                    "status": "pass",
+                },
             ],
         )
         later = HistoryEntry(
@@ -450,8 +559,20 @@ class TestHistory:
             score=80,
             grade="B",
             checks=[
-                {"name": "Security", "score": 80, "weight": 15, "detail": "better", "status": "pass"},
-                {"name": "Tests", "score": 90, "weight": 10, "detail": "ok", "status": "pass"},
+                {
+                    "name": "Security",
+                    "score": 80,
+                    "weight": 15,
+                    "detail": "better",
+                    "status": "pass",
+                },
+                {
+                    "name": "Tests",
+                    "score": 90,
+                    "weight": 10,
+                    "detail": "ok",
+                    "status": "pass",
+                },
             ],
         )
         diff = compare_entries(earlier, later)
@@ -461,28 +582,47 @@ class TestHistory:
 
     def test_trend(self):
         from repohealth.history import HistoryEntry, get_trend
+
         # Improving trend
         entries = [
-            HistoryEntry(timestamp=f"2026-05-{i:02d}T00:00:00", path="/t", score=60 + i * 5, grade="B", checks=[])
+            HistoryEntry(
+                timestamp=f"2026-05-{i:02d}T00:00:00",
+                path="/t",
+                score=60 + i * 5,
+                grade="B",
+                checks=[],
+            )
             for i in range(1, 6)
         ]
         assert get_trend(entries) == "improving"
 
         # Stable
         entries = [
-            HistoryEntry(timestamp=f"2026-05-{i:02d}T00:00:00", path="/t", score=75, grade="C", checks=[])
+            HistoryEntry(
+                timestamp=f"2026-05-{i:02d}T00:00:00",
+                path="/t",
+                score=75,
+                grade="C",
+                checks=[],
+            )
             for i in range(1, 6)
         ]
         assert get_trend(entries) == "stable"
 
     def test_prune(self, tmp_path):
         from repohealth.history import save_report, load_history, prune_history
+
         # Create many entries
         for i in range(10):
-            save_report({
-                "path": str(tmp_path), "score": 50 + i,
-                "grade": "C", "checks": [],
-            }, repo_path=str(tmp_path))
+            save_report(
+                {
+                    "path": str(tmp_path),
+                    "score": 50 + i,
+                    "grade": "C",
+                    "checks": [],
+                },
+                repo_path=str(tmp_path),
+            )
 
         entries = load_history(repo_path=str(tmp_path))
         assert len(entries) == 10
@@ -500,6 +640,7 @@ class TestHistory:
 class TestConfig:
     def test_load_defaults(self, tmp_path):
         from repohealth.config import load_config
+
         cfg = load_config(str(tmp_path))
         assert cfg.large_file_threshold_kb == 1024
         assert cfg.save_history is True
@@ -508,12 +649,14 @@ class TestConfig:
 
     def test_disabled_check(self, tmp_path):
         from repohealth.config import load_config
+
         cfg = load_config(str(tmp_path))
         cfg.ignore_checks = ["pr_review"]
         assert not cfg.is_check_enabled("pr_review")
 
     def test_generate_config(self, tmp_path):
         from repohealth.config import generate_default_config
+
         path = generate_default_config(str(tmp_path / ".repohealth.yml"))
         assert path.exists()
         content = path.read_text()
@@ -521,6 +664,7 @@ class TestConfig:
 
     def test_yaml_config(self, tmp_path):
         from repohealth.config import load_config
+
         config_content = """large_file_threshold_kb: 2048
 save_history: false
 checks:
@@ -540,9 +684,11 @@ checks:
 class TestCLI:
     def _run_cli(self, *args):
         import sys
+
         return subprocess.run(
             [sys.executable, "-m", "repohealth.cli", *args],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
 
     def test_check_command(self, git_repo):
@@ -599,9 +745,18 @@ class TestIntegration:
     def test_full_check_suite(self, python_repo):
         """Run the full check suite on a realistic Python project."""
         import sys
+
         r = subprocess.run(
-            [sys.executable, "-m", "repohealth.cli", "check", str(python_repo), "--json-output"],
-            capture_output=True, text=True,
+            [
+                sys.executable,
+                "-m",
+                "repohealth.cli",
+                "check",
+                str(python_repo),
+                "--json-output",
+            ],
+            capture_output=True,
+            text=True,
         )
         if r.returncode == 0:
             data = json.loads(r.stdout)

@@ -46,7 +46,9 @@ def check(repo_path: str | None = None) -> OutdatedDepsResult:
     source = dep_file.name if dep_file else "none"
 
     if dep_file is None:
-        return OutdatedDepsResult(source="none", outdated=[], error="No dependency file found")
+        return OutdatedDepsResult(
+            source="none", outdated=[], error="No dependency file found"
+        )
 
     try:
         r = subprocess.run(
@@ -57,7 +59,9 @@ def check(repo_path: str | None = None) -> OutdatedDepsResult:
             timeout=30,
         )
         if r.returncode != 0:
-            return OutdatedDepsResult(source=source, outdated=[], error=r.stderr.strip())
+            return OutdatedDepsResult(
+                source=source, outdated=[], error=r.stderr.strip()
+            )
 
         items = json.loads(r.stdout) if r.stdout.strip() else []
         # Only report deps that appear in our dep file
