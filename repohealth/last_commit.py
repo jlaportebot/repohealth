@@ -33,6 +33,10 @@ def check(repo_path: str | None = None) -> LastCommitResult:
             dt = dt.replace(tzinfo=timezone.utc)
         now = datetime.now(timezone.utc)
         days = (now - dt).days
+        # Handle edge case where commit timestamp is slightly in the future
+        # (can happen in fast CI environments due to clock precision)
+        if days < 0:
+            days = 0
         return LastCommitResult(last_commit_date=iso[:10], days_since_last_commit=days)
     except (ValueError, TypeError):
         return LastCommitResult(last_commit_date=iso, days_since_last_commit=-1)
