@@ -6,7 +6,7 @@ import json
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 
 @dataclass
@@ -23,11 +23,11 @@ class OutdatedDepsResult:
     """Result of outdated-dependencies check."""
 
     source: str  # "requirements.txt", "pyproject.toml", etc.
-    outdated: List[OutdatedDep]
-    error: Optional[str] = None
+    outdated: list[OutdatedDep]
+    error: str | None = None
 
 
-def _find_dep_file(repo_path: str | None = None) -> Optional[Path]:
+def _find_dep_file(repo_path: str | None = None) -> Path | None:
     base = Path(repo_path) if repo_path else Path.cwd()
     candidates = [
         base / "requirements.txt",
@@ -46,9 +46,7 @@ def check(repo_path: str | None = None) -> OutdatedDepsResult:
     source = dep_file.name if dep_file else "none"
 
     if dep_file is None:
-        return OutdatedDepsResult(
-            source="none", outdated=[], error="No dependency file found"
-        )
+        return OutdatedDepsResult(source="none", outdated=[], error="No dependency file found")
 
     try:
         r = subprocess.run(
@@ -59,14 +57,12 @@ def check(repo_path: str | None = None) -> OutdatedDepsResult:
             timeout=30,
         )
         if r.returncode != 0:
-            return OutdatedDepsResult(
-                source=source, outdated=[], error=r.stderr.strip()
-            )
+            return OutdatedDepsResult(source=source, outdated=[], error=r.stderr.strip())
 
         items = json.loads(r.stdout) if r.stdout.strip() else []
         # Only report deps that appear in our dep file
         dep_text = dep_file.read_text(errors="ignore")
-        outdated: List[OutdatedDep] = []
+        outdated: list[OutdatedDep] = []
         for item in items:
             name = item.get("name", "")
             if name.lower() in dep_text.lower():

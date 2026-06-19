@@ -4,15 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
 
 @dataclass
 class EssentialsResult:
     """Result of essentials check."""
 
-    missing: List[str]
-    present: List[str]
+    missing: list[str]
+    present: list[str]
 
 
 ESSENTIAL_FILES = {
@@ -33,8 +32,8 @@ CI_INDICATORS = [
 def check(repo_path: str | None = None) -> EssentialsResult:
     """Check for essential repo files and CI config."""
     base = Path(repo_path) if repo_path else Path.cwd()
-    missing: List[str] = []
-    present: List[str] = []
+    missing: list[str] = []
+    present: list[str] = []
 
     for label, filenames in ESSENTIAL_FILES.items():
         if any((base / fn).exists() for fn in filenames):

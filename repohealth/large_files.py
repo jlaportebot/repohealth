@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
@@ -20,7 +19,7 @@ class LargeFilesResult:
     """Result of large-files check."""
 
     threshold_kb: int
-    large_files: List[LargeFile]
+    large_files: list[LargeFile]
 
 
 def check(repo_path: str | None = None, threshold_kb: int = 1024) -> LargeFilesResult:
@@ -36,7 +35,7 @@ def check(repo_path: str | None = None, threshold_kb: int = 1024) -> LargeFilesR
 
     # Use find with -size for efficiency
     files = [f for f in r.stdout.split("\0") if f]
-    large: List[LargeFile] = []
+    large: list[LargeFile] = []
     for f in files:
         try:
             r2 = subprocess.run(

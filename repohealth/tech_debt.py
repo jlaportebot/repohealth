@@ -7,17 +7,17 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 # Debt markers to search for
 DEBT_MARKERS = {
-    "TODO": re.compile(r"\bTODO\b[:\s]*(.*)", re.I),
-    "FIXME": re.compile(r"\bFIXME\b[:\s]*(.*)", re.I),
-    "HACK": re.compile(r"\bHACK\b[:\s]*(.*)", re.I),
-    "XXX": re.compile(r"\bXXX\b[:\s]*(.*)", re.I),
-    "DEPRECATED": re.compile(r"\bDEPRECATED\b[:\s]*(.*)", re.I),
-    "NOQA": re.compile(r"#\s*noqa\b", re.I),
+    "TODO": re.compile(r"\bTODO\b[:\s]*(.*)", re.IGNORECASE),
+    "FIXME": re.compile(r"\bFIXME\b[:\s]*(.*)", re.IGNORECASE),
+    "HACK": re.compile(r"\bHACK\b[:\s]*(.*)", re.IGNORECASE),
+    "XXX": re.compile(r"\bXXX\b[:\s]*(.*)", re.IGNORECASE),
+    "DEPRECATED": re.compile(r"\bDEPRECATED\b[:\s]*(.*)", re.IGNORECASE),
+    "NOQA": re.compile(r"#\s*noqa\b", re.IGNORECASE),
 }
 
 # Files to scan
@@ -71,9 +71,9 @@ class TechDebtResult:
     """Result of technical debt analysis."""
 
     total_markers: int
-    markers_by_type: Dict[str, int]
-    debt_items: List[DebtItem]
-    high_complexity_functions: List[ComplexityInfo]  # Functions with complexity > 10
+    markers_by_type: dict[str, int]
+    debt_items: list[DebtItem]
+    high_complexity_functions: list[ComplexityInfo]  # Functions with complexity > 10
     max_complexity: int
     avg_complexity: float
     total_functions: int
@@ -81,7 +81,7 @@ class TechDebtResult:
     deprecated_count: int
     noqa_count: int
     debt_score: float  # 0-100, higher = more debt
-    error: Optional[str] = None
+    error: str | None = None
 
 
 SKIP_DIRS = {
@@ -108,20 +108,20 @@ def _compute_cyclomatic_complexity(tree: ast.AST) -> int:
 
     for node in ast.walk(tree):
         # Decision points
-        if isinstance(node, ast.If):
-            complexity += 1
-        elif isinstance(node, ast.For):
-            complexity += 1
-        elif isinstance(node, ast.While):
-            complexity += 1
-        elif isinstance(node, ast.ExceptHandler):
-            complexity += 1
-        elif isinstance(node, ast.With):
-            complexity += 1
-        elif isinstance(node, ast.Assert):
-            complexity += 1
-        elif isinstance(
-            node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+        if isinstance(
+            node,
+            (
+                ast.If,
+                ast.For,
+                ast.While,
+                ast.ExceptHandler,
+                ast.With,
+                ast.Assert,
+                ast.ListComp,
+                ast.SetComp,
+                ast.DictComp,
+                ast.GeneratorExp,
+            ),
         ):
             complexity += 1
         elif isinstance(node, ast.BoolOp):
@@ -133,9 +133,9 @@ def _compute_cyclomatic_complexity(tree: ast.AST) -> int:
     return complexity
 
 
-def _scan_file_for_debt(filepath: Path, base: Path) -> List[DebtItem]:
+def _scan_file_for_debt(filepath: Path, base: Path) -> list[DebtItem]:
     """Scan a file for debt markers."""
-    items: List[DebtItem] = []
+    items: list[DebtItem] = []
 
     try:
         lines = filepath.read_text(errors="ignore").splitlines()
@@ -168,9 +168,9 @@ def _scan_file_for_debt(filepath: Path, base: Path) -> List[DebtItem]:
     return items
 
 
-def _analyze_python_complexity(filepath: Path, base: Path) -> List[ComplexityInfo]:
+def _analyze_python_complexity(filepath: Path, base: Path) -> list[ComplexityInfo]:
     """Analyze cyclomatic complexity of Python functions in a file."""
-    results: List[ComplexityInfo] = []
+    results: list[ComplexityInfo] = []
 
     try:
         content = filepath.read_text(errors="ignore")
@@ -183,9 +183,7 @@ def _analyze_python_complexity(filepath: Path, base: Path) -> List[ComplexityInf
             complexity = _compute_cyclomatic_complexity(node)
             # Count lines
             end_line = (
-                node.end_lineno
-                if hasattr(node, "end_lineno") and node.end_lineno
-                else node.lineno
+                node.end_lineno if hasattr(node, "end_lineno") and node.end_lineno else node.lineno
             )
             func_lines = end_line - node.lineno + 1
 
@@ -213,18 +211,16 @@ def check(repo_path: str | None = None, max_items: int = 50) -> TechDebtResult:
     """
     base = Path(repo_path) if repo_path else Path.cwd()
 
-    all_debt: List[DebtItem] = []
-    all_complex: List[ComplexityInfo] = []
-    markers_by_type: Dict[str, int] = {m: 0 for m in DEBT_MARKERS}
+    all_debt: list[DebtItem] = []
+    all_complex: list[ComplexityInfo] = []
+    markers_by_type: dict[str, int] = {m: 0 for m in DEBT_MARKERS}
     deprecated_count = 0
     noqa_count = 0
     total_functions = 0
     long_functions = 0
 
     for dirpath, dirnames, filenames in os.walk(base):
-        dirnames[:] = [
-            d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")
-        ]
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
 
         for fname in filenames:
             ext = Path(fname).suffix.lower()
@@ -277,9 +273,7 @@ def check(repo_path: str | None = None, max_items: int = 50) -> TechDebtResult:
 
     max_complexity = max((c.complexity for c in all_complex), default=0)
     avg_complexity = (
-        sum(c.complexity for c in all_complex) / len(all_complex)
-        if all_complex
-        else 0.0
+        sum(c.complexity for c in all_complex) / len(all_complex) if all_complex else 0.0
     )
 
     # Compute debt score (0-100, higher = more debt)

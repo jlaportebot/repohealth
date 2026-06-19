@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
@@ -14,7 +13,7 @@ class DirtyTreeResult:
     has_unstaged: bool
     has_uncommitted: bool
     has_untracked: bool
-    untracked_files: List[str]
+    untracked_files: list[str]
     is_dirty: bool
 
 
@@ -31,7 +30,7 @@ def check(repo_path: str | None = None) -> DirtyTreeResult:
     has_unstaged = False
     has_uncommitted = False
     has_untracked = False
-    untracked_files: List[str] = []
+    untracked_files: list[str] = []
 
     for line in lines:
         xy = line[:2]

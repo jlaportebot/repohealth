@@ -6,7 +6,7 @@ import ast
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
 
 @dataclass
@@ -17,7 +17,7 @@ class ModuleDocInfo:
     total_definitions: int  # classes + functions
     documented_definitions: int
     has_module_docstring: bool
-    missing_docstrings: List[str]  # Names of undocumented items
+    missing_docstrings: list[str]  # Names of undocumented items
 
 
 @dataclass
@@ -29,15 +29,15 @@ class DocCoverageResult:
     documented_definitions: int
     coverage_pct: float  # 0-100
     module_docstring_pct: float  # % of modules with docstrings
-    missing_items: List[str]  # Top undocumented items
-    readme_sections: List[str]  # Sections found in README
-    missing_readme_sections: List[str]  # Important sections not in README
+    missing_items: list[str]  # Top undocumented items
+    readme_sections: list[str]  # Sections found in README
+    missing_readme_sections: list[str]  # Important sections not in README
     has_api_docs: bool  # docs/ directory or similar
     has_changelog: bool
     has_contributing: bool
     has_code_of_conduct: bool
-    modules: List[ModuleDocInfo]
-    error: Optional[str] = None
+    modules: list[ModuleDocInfo]
+    error: str | None = None
 
 
 # README sections that should exist
@@ -90,7 +90,7 @@ def _analyze_python_module(filepath: Path, base: Path) -> ModuleDocInfo:
     has_module_doc = ast.get_docstring(tree) is not None
     total = 0
     documented = 0
-    missing: List[str] = []
+    missing: list[str] = []
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -121,7 +121,7 @@ def _analyze_python_module(filepath: Path, base: Path) -> ModuleDocInfo:
     )
 
 
-def _analyze_readme(base: Path) -> Tuple[List[str], List[str]]:
+def _analyze_readme(base: Path) -> tuple[list[str], list[str]]:
     """Analyze README for sections present and missing."""
     readme_path = None
     for name in ["README.md", "README.rst", "README.txt", "README"]:
@@ -137,19 +137,20 @@ def _analyze_readme(base: Path) -> Tuple[List[str], List[str]]:
     except OSError:
         return [], list(IMPORTANT_README_SECTIONS)
 
-    found: List[str] = []
-    missing: List[str] = []
+    found: list[str] = []
+    missing: list[str] = []
 
     for section in IMPORTANT_README_SECTIONS:
         # Check for markdown headers or RST underlines
-        if f"## {section}" in content or f"# {section}" in content:
-            found.append(section)
-        elif (
-            f"{section}\n{'=' * len(section)}" in content
-            or f"{section}\n{'-' * len(section)}" in content
+        if (
+            f"## {section}" in content
+            or f"# {section}" in content
+            or (
+                f"{section}\n{'=' * len(section)}" in content
+                or f"{section}\n{'-' * len(section)}" in content
+            )
+            or section in content
         ):
-            found.append(section)
-        elif section in content:
             found.append(section)
         else:
             missing.append(section)
@@ -168,16 +169,14 @@ def check(repo_path: str | None = None) -> DocCoverageResult:
     base = Path(repo_path) if repo_path else Path.cwd()
 
     # Analyze Python modules
-    modules: List[ModuleDocInfo] = []
+    modules: list[ModuleDocInfo] = []
     total_defs = 0
     documented_defs = 0
     modules_with_doc = 0
-    all_missing: List[str] = []
+    all_missing: list[str] = []
 
     for dirpath, dirnames, filenames in os.walk(base):
-        dirnames[:] = [
-            d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")
-        ]
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
 
         for fname in filenames:
             if not fname.endswith(".py") or fname == "__init__.py":
@@ -209,9 +208,7 @@ def check(repo_path: str | None = None) -> DocCoverageResult:
     readme_sections, missing_readme_sections = _analyze_readme(base)
 
     # Check for docs directory
-    has_api_docs = any(
-        (base / d).exists() for d in ["docs", "doc", "documentation", "api_docs"]
-    )
+    has_api_docs = any((base / d).exists() for d in ["docs", "doc", "documentation", "api_docs"])
 
     # Check for changelog
     has_changelog = any(

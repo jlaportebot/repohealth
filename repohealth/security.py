@@ -7,46 +7,44 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 
 # Patterns that look like secrets/credentials
 SECRET_PATTERNS = [
     (
-        re.compile(r'(?:password|passwd|pwd)\s*[:=]\s*["\'][^"\']{4,}["\']', re.I),
+        re.compile(r'(?:password|passwd|pwd)\s*[:=]\s*["\'][^"\']{4,}["\']', re.IGNORECASE),
         "Hardcoded password",
     ),
     (
-        re.compile(
-            r'(?:api_?key|apikey|api_secret)\s*[:=]\s*["\'][^"\']{8,}["\']', re.I
-        ),
+        re.compile(r'(?:api_?key|apikey|api_secret)\s*[:=]\s*["\'][^"\']{8,}["\']', re.IGNORECASE),
         "Hardcoded API key",
     ),
     (
-        re.compile(r'(?:secret|token|auth_token)\s*[:=]\s*["\'][^"\']{8,}["\']', re.I),
+        re.compile(r'(?:secret|token|auth_token)\s*[:=]\s*["\'][^"\']{8,}["\']', re.IGNORECASE),
         "Hardcoded secret/token",
     ),
     (
         re.compile(
             r'(?:aws_access_key_id|aws_secret_access_key)\s*[:=]\s*["\'][^"\']+["\']',
-            re.I,
+            re.IGNORECASE,
         ),
         "AWS credential",
     ),
     (
-        re.compile(r'(?:private_key)\s*[:=]\s*["\']-----BEGIN', re.I),
+        re.compile(r'(?:private_key)\s*[:=]\s*["\']-----BEGIN', re.IGNORECASE),
         "Embedded private key",
     ),
     (
-        re.compile(r"mongodb(?:\+srv)?://[^:\s]+:[^@\s]+@", re.I),
+        re.compile(r"mongodb(?:\+srv)?://[^:\s]+:[^@\s]+@", re.IGNORECASE),
         "MongoDB URI with credentials",
     ),
     (
-        re.compile(r"postgres(?:ql)?://[^:\s]+:[^@\s]+@", re.I),
+        re.compile(r"postgres(?:ql)?://[^:\s]+:[^@\s]+@", re.IGNORECASE),
         "PostgreSQL URI with credentials",
     ),
-    (re.compile(r"mysql://[^:\s]+:[^@\s]+@", re.I), "MySQL URI with credentials"),
-    (re.compile(r"redis://[^:\s]+:[^@\s]+@", re.I), "Redis URI with credentials"),
+    (re.compile(r"mysql://[^:\s]+:[^@\s]+@", re.IGNORECASE), "MySQL URI with credentials"),
+    (re.compile(r"redis://[^:\s]+:[^@\s]+@", re.IGNORECASE), "Redis URI with credentials"),
     (re.compile(r"sk-[a-zA-Z0-9]{20,}"), "OpenAI API key pattern"),
     (re.compile(r"ghp_[a-zA-Z0-9]{36,}"), "GitHub personal access token"),
     (re.compile(r"glpat-[a-zA-Z0-9\-]{20,}"), "GitLab personal access token"),
@@ -124,17 +122,17 @@ class SecretFinding:
 class SecurityResult:
     """Result of security analysis."""
 
-    secret_findings: List[SecretFinding]
-    dangerous_files_present: List[str]
+    secret_findings: list[SecretFinding]
+    dangerous_files_present: list[str]
     has_gitignore_entry: bool  # .gitignore has entries for dangerous files
     has_pre_commit: bool  # pre-commit config exists
     has_dependabot: bool  # Dependabot or Renovate configured
     has_security_policy: bool  # SECURITY.md exists
     pip_audit_available: bool
-    pip_audit_result: Optional[str]  # Summary from pip-audit if available
+    pip_audit_result: str | None  # Summary from pip-audit if available
     total_findings: int
     risk_level: str  # "low", "medium", "high", "critical"
-    error: Optional[str] = None
+    error: str | None = None
 
 
 def _mask_secret(line: str) -> str:
@@ -146,13 +144,12 @@ def _mask_secret(line: str) -> str:
         line,
     )
     # Mask URL credentials
-    masked = re.sub(r"://([^:\s]+):([^@\s]+)@", r"://\1:****@", masked)
-    return masked
+    return re.sub(r"://([^:\s]+):([^@\s]+)@", r"://\1:****@", masked)
 
 
-def _scan_file_for_secrets(filepath: Path, base: Path) -> List[SecretFinding]:
+def _scan_file_for_secrets(filepath: Path, base: Path) -> list[SecretFinding]:
     """Scan a single file for secret patterns."""
-    findings: List[SecretFinding] = []
+    findings: list[SecretFinding] = []
 
     try:
         lines = filepath.read_text(errors="ignore").splitlines()
@@ -162,7 +159,7 @@ def _scan_file_for_secrets(filepath: Path, base: Path) -> List[SecretFinding]:
     for line_num, line in enumerate(lines, start=1):
         stripped = line.strip()
         # Skip comments
-        if stripped.startswith("#") or stripped.startswith("//"):
+        if stripped.startswith(("#", "//")):
             continue
 
         for pattern, description in SECRET_PATTERNS:
@@ -192,12 +189,10 @@ def check(repo_path: str | None = None, max_findings: int = 50) -> SecurityResul
     base = Path(repo_path) if repo_path else Path.cwd()
 
     # Scan files for secrets
-    all_findings: List[SecretFinding] = []
+    all_findings: list[SecretFinding] = []
 
     for dirpath, dirnames, filenames in os.walk(base):
-        dirnames[:] = [
-            d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")
-        ]
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
 
         for fname in filenames:
             ext = Path(fname).suffix.lower()
@@ -223,7 +218,7 @@ def check(repo_path: str | None = None, max_findings: int = 50) -> SecurityResul
             break
 
     # Check for dangerous files
-    dangerous_present: List[str] = []
+    dangerous_present: list[str] = []
     for df in DANGEROUS_FILES:
         if (base / df).exists():
             dangerous_present.append(df)
@@ -298,9 +293,7 @@ def check(repo_path: str | None = None, max_findings: int = 50) -> SecurityResul
     total = len(all_findings) + len(dangerous_present)
     if total == 0 and has_dep_bot and has_security_policy:
         risk = "low"
-    elif total == 0:
-        risk = "medium"
-    elif total <= 3:
+    elif total == 0 or total <= 3:
         risk = "medium"
     elif total <= 10:
         risk = "high"

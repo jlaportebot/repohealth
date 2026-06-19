@@ -7,7 +7,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 
 
 @dataclass
@@ -25,10 +25,10 @@ class DependencyInfo:
 class DependencyGraphResult:
     """Result of dependency graph analysis."""
 
-    runtime_deps: List[DependencyInfo]
-    dev_deps: List[DependencyInfo]
-    optional_deps: List[DependencyInfo]
-    build_deps: List[DependencyInfo]
+    runtime_deps: list[DependencyInfo]
+    dev_deps: list[DependencyInfo]
+    optional_deps: list[DependencyInfo]
+    build_deps: list[DependencyInfo]
     total_runtime: int
     total_dev: int
     total_optional: int
@@ -37,11 +37,11 @@ class DependencyGraphResult:
     has_version_pins: int  # Number with exact version pins
     has_upper_bounds: int  # Number with upper bound constraints
     has_wildcards: int  # Number with no version or wildcard
-    license_types: Set[str]  # License categories found
-    imports_used: Set[str]  # Third-party imports actually used in code
-    unused_deps: List[str]  # Declared but not imported
-    missing_deps: List[str]  # Imported but not declared
-    error: Optional[str] = None
+    license_types: set[str]  # License categories found
+    imports_used: set[str]  # Third-party imports actually used in code
+    unused_deps: list[str]  # Declared but not imported
+    missing_deps: list[str]  # Imported but not declared
+    error: str | None = None
 
 
 # Map common package names to their import names
@@ -62,9 +62,9 @@ PACKAGE_TO_IMPORT = {
 }
 
 
-def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
+def _parse_pyproject_toml(filepath: Path) -> tuple[list[DependencyInfo], str]:
     """Parse dependencies from pyproject.toml (simple parser, no toml dep needed)."""
-    deps: List[DependencyInfo] = []
+    deps: list[DependencyInfo] = []
     try:
         content = filepath.read_text(errors="ignore")
     except OSError:
@@ -85,7 +85,7 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
             in_project_deps = False
             in_optional = False
             continue
-        elif stripped.startswith("[project.optional-dependencies"):
+        if stripped.startswith("[project.optional-dependencies"):
             current_section = "optional"
             in_project_deps = False
             # Extract group name
@@ -93,15 +93,15 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
             current_optional_group = match.group(1) if match else "optional"
             in_optional = True
             continue
-        elif stripped.startswith("[build-system]"):
+        if stripped.startswith("[build-system]"):
             current_section = "build"
             in_project_deps = False
             in_optional = False
             continue
-        elif stripped.startswith("[tool.setuptools]"):
+        if stripped.startswith("[tool.setuptools]"):
             current_section = "setuptools"
             continue
-        elif stripped.startswith("["):
+        if stripped.startswith("["):
             current_section = "other"
             in_project_deps = False
             in_optional = False
@@ -115,14 +115,14 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
             if match:
                 inline = match.group(1)
                 for dep_match in re.finditer(r'"([^"]+)"', inline):
-                    _add_dep(deps, dep_match.group(1), "runtime", False, False)
+                    _add_dep(deps, dep_match.group(1), "runtime", is_dev=False, is_optional=False)
             continue
 
         if in_project_deps and stripped.startswith('"'):
             # Dependency line in the dependencies array
             dep_match = re.match(r'"([^"]+)"', stripped)
             if dep_match:
-                _add_dep(deps, dep_match.group(1), "runtime", False, False)
+                _add_dep(deps, dep_match.group(1), "runtime", is_dev=False, is_optional=False)
             continue
 
         if in_project_deps and stripped == "]":
@@ -138,7 +138,13 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
                     "testing",
                     "development",
                 )
-                _add_dep(deps, dep_match.group(1), current_optional_group, is_dev, True)
+                _add_dep(
+                    deps,
+                    dep_match.group(1),
+                    current_optional_group,
+                    is_dev=is_dev,
+                    is_optional=True,
+                )
             continue
 
         if in_optional and stripped == "]":
@@ -150,13 +156,13 @@ def _parse_pyproject_toml(filepath: Path) -> Tuple[List[DependencyInfo], str]:
             if match:
                 inline = match.group(1)
                 for dep_match in re.finditer(r'"([^"]+)"', inline):
-                    _add_dep(deps, dep_match.group(1), "build", False, False)
+                    _add_dep(deps, dep_match.group(1), "build", is_dev=False, is_optional=False)
 
     return deps, "pyproject.toml"
 
 
 def _add_dep(
-    deps: List[DependencyInfo],
+    deps: list[DependencyInfo],
     spec: str,
     category: str,
     is_dev: bool,
@@ -181,19 +187,17 @@ def _add_dep(
     )
 
 
-def _parse_requirements_txt(
-    filepath: Path, is_dev: bool = False
-) -> List[DependencyInfo]:
+def _parse_requirements_txt(filepath: Path, is_dev: bool = False) -> list[DependencyInfo]:
     """Parse requirements.txt format."""
-    deps: List[DependencyInfo] = []
+    deps: list[DependencyInfo] = []
     try:
         content = filepath.read_text(errors="ignore")
     except OSError:
         return deps
 
-    for line in content.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or line.startswith("-"):
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith(("#", "-")):
             continue
 
         match = re.match(r"([a-zA-Z0-9_.-]+)\s*(.*)", line)
@@ -211,9 +215,9 @@ def _parse_requirements_txt(
     return deps
 
 
-def _find_third_party_imports(base: Path) -> Set[str]:
+def _find_third_party_imports(base: Path) -> set[str]:
     """Scan Python source files to find third-party imports actually used."""
-    imports: Set[str] = set()
+    imports: set[str] = set()
     stdlib_names = {
         "os",
         "sys",
@@ -338,11 +342,13 @@ def _find_third_party_imports(base: Path) -> Set[str]:
                         top = alias.name.split(".")[0]
                         if top not in stdlib_names:
                             imports.add(top.lower())
-                elif isinstance(node, ast.ImportFrom):
-                    if node.module and node.level == 0:  # Not relative import
-                        top = node.module.split(".")[0]
-                        if top not in stdlib_names:
-                            imports.add(top.lower())
+                elif isinstance(node, ast.ImportFrom):  # noqa: SIM102
+                    if (
+                        node.module
+                        and node.level == 0
+                        and node.module.split(".")[0] not in stdlib_names
+                    ):
+                        imports.add(node.module.split(".")[0].lower())
 
     return imports
 
@@ -357,7 +363,7 @@ def check(repo_path: str | None = None) -> DependencyGraphResult:
     """
     base = Path(repo_path) if repo_path else Path.cwd()
 
-    all_deps: List[DependencyInfo] = []
+    all_deps: list[DependencyInfo] = []
     dep_file = "none"
 
     # Try pyproject.toml first
@@ -423,7 +429,7 @@ def check(repo_path: str | None = None) -> DependencyGraphResult:
     imports_used = _find_third_party_imports(base)
 
     # Map dependency names to import names
-    declared_imports: Set[str] = set()
+    declared_imports: set[str] = set()
     for d in all_deps:
         name_lower = d.name.lower().replace("-", "_")
         # Check if there's a known mapping
