@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime, timezone, UTC
+from datetime import datetime, UTC
 
 
 @dataclass
@@ -33,6 +33,10 @@ def check(repo_path: str | None = None) -> LastCommitResult:
             dt = dt.replace(tzinfo=UTC)
         now = datetime.now(UTC)
         days = (now - dt).days
+        # Handle edge case where commit timestamp is slightly in the future
+        # (can happen in fast CI environments due to clock precision)
+        if days < 0:
+            days = 0
         return LastCommitResult(last_commit_date=iso[:10], days_since_last_commit=days)
     except (ValueError, TypeError):
-        return LastCommitResult(last_commit_date=iso, days_since_last_commit=-1)
+        return LastCommitResult(last_commit_date=iso[:10], days_since_last_commit=-1)
