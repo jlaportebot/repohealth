@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture
 def git_repo(tmp_path: Path):
     """Create a minimal git repo for testing."""
     subprocess.run(["git", "init"], cwd=str(tmp_path), check=True, capture_output=True)
@@ -25,9 +25,7 @@ def git_repo(tmp_path: Path):
     )
     readme = tmp_path / "README.md"
     readme.write_text("# Test\n")
-    subprocess.run(
-        ["git", "add", "."], cwd=str(tmp_path), check=True, capture_output=True
-    )
+    subprocess.run(["git", "add", "."], cwd=str(tmp_path), check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", "feat: initial commit"],
         cwd=str(tmp_path),
@@ -48,9 +46,7 @@ class TestCodeChurn:
         readme = git_repo / "README.md"
         for i in range(5):
             readme.write_text(f"# Version {i}\n")
-            subprocess.run(
-                ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
-            )
+            subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
             subprocess.run(
                 ["git", "commit", "-m", f"update v{i}"],
                 cwd=str(git_repo),
@@ -70,9 +66,7 @@ class TestCodeChurn:
         """Test that FileChurn properties work correctly."""
         from repohealth.code_churn import FileChurn
 
-        fc = FileChurn(
-            path="test.py", commits=10, insertions=100, deletions=50, churn_score=15.0
-        )
+        fc = FileChurn(path="test.py", commits=10, insertions=100, deletions=50, churn_score=15.0)
         assert fc.total_lines_changed == 150
         assert fc.churn_score == 15.0
 
@@ -110,9 +104,7 @@ class TestCommitConventions:
         ]
         for msg in commits:
             (git_repo / f"file_{msg[:4]}.txt").write_text(msg)
-            subprocess.run(
-                ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
-            )
+            subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
             subprocess.run(
                 ["git", "commit", "-m", msg],
                 cwd=str(git_repo),
@@ -249,9 +241,7 @@ class TestSecurityModule:
         from repohealth.security import check
 
         (git_repo / ".pre-commit-config.yaml").write_text("repos: []\n")
-        subprocess.run(
-            ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
-        )
+        subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "add pre-commit"],
             cwd=str(git_repo),
@@ -374,9 +364,7 @@ class TestTechDebtModule:
         assert _compute_cyclomatic_complexity(func) == 1
 
         # If/else
-        tree = ast.parse(
-            "def f(x):\n    if x: pass\n    elif x > 1: pass\n    else: pass"
-        )
+        tree = ast.parse("def f(x):\n    if x: pass\n    elif x > 1: pass\n    else: pass")
         func = tree.body[0]
         complexity = _compute_cyclomatic_complexity(func)
         assert complexity >= 3
@@ -401,8 +389,7 @@ class TestTechDebtModule:
 
         f = tmp_path / "complex.py"
         f.write_text(
-            "def big_func(x):\n"
-            + "\n".join(f"    if x > {i}: return {i}\n" for i in range(15))
+            "def big_func(x):\n" + "\n".join(f"    if x > {i}: return {i}\n" for i in range(15))
         )
         results = _analyze_python_complexity(f, tmp_path)
         assert len(results) > 0
@@ -474,11 +461,7 @@ class TestHistoryModule:
         """Test trend with insufficient data."""
         from repohealth.history import HistoryEntry, get_trend
 
-        entries = [
-            HistoryEntry(
-                timestamp="2026-05-01", path="/t", score=85, grade="B", checks=[]
-            )
-        ]
+        entries = [HistoryEntry(timestamp="2026-05-01", path="/t", score=85, grade="B", checks=[])]
         trend = get_trend(entries)
         assert trend == "insufficient"
 
@@ -519,9 +502,7 @@ class TestConfigModule:
         """Test get_check_option."""
         from repohealth.config import RepoHealthConfig, CheckConfig
 
-        cfg = RepoHealthConfig(
-            checks={"security": CheckConfig(options={"max_findings": 100})}
-        )
+        cfg = RepoHealthConfig(checks={"security": CheckConfig(options={"max_findings": 100})})
         assert cfg.get_check_option("security", "max_findings") == 100
         assert cfg.get_check_option("security", "nonexistent", "default") == "default"
 
@@ -536,7 +517,7 @@ class TestConfigModule:
 
 
 # Fixtures for test modules that need python_repo
-@pytest.fixture()
+@pytest.fixture
 def python_repo(git_repo: Path):
     """Create a Python project repo with source and test files."""
     src_dir = git_repo / "myproject"
@@ -571,9 +552,7 @@ dependencies = ["click>=8.0"]
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
 """)
-    subprocess.run(
-        ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
-    )
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", "feat: add project"],
         cwd=str(git_repo),

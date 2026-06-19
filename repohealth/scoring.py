@@ -30,7 +30,7 @@ class CheckReport:
     weight: int
     detail: str
     status: str  # "pass", "warn", "fail"
-    data: Optional[Dict[str, Any]] = field(default=None, repr=False)
+    data: dict[str, Any] | None = field(default=None, repr=False)
 
 
 @dataclass
@@ -40,8 +40,8 @@ class HealthReport:
     path: str
     score: int  # weighted average 0–100
     grade: str  # A/B/C/D/F
-    checks: List[CheckReport] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    checks: list[CheckReport] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 def _grade(score: int) -> str:
@@ -77,9 +77,7 @@ def score_stale_branches(result: StaleBranchResult) -> CheckReport:
     if n == 0:
         return CheckReport("Stale Branches", 100, 10, "No stale branches", "pass")
     score = max(0, 100 - n * 10)
-    return CheckReport(
-        "Stale Branches", score, 10, f"{n} merged branch(es) can be deleted", "warn"
-    )
+    return CheckReport("Stale Branches", score, 10, f"{n} merged branch(es) can be deleted", "warn")
 
 
 def score_essentials(result: EssentialsResult) -> CheckReport:
@@ -87,9 +85,7 @@ def score_essentials(result: EssentialsResult) -> CheckReport:
     if n_missing == 0:
         return CheckReport("Essentials", 100, 20, "All essentials present", "pass")
     score = max(0, 100 - n_missing * 25)
-    return CheckReport(
-        "Essentials", score, 20, f"Missing: {', '.join(result.missing)}", "fail"
-    )
+    return CheckReport("Essentials", score, 20, f"Missing: {', '.join(result.missing)}", "fail")
 
 
 def score_outdated_deps(result: OutdatedDepsResult) -> CheckReport:
@@ -99,18 +95,14 @@ def score_outdated_deps(result: OutdatedDepsResult) -> CheckReport:
     if n == 0:
         return CheckReport("Dependencies", 100, 15, "All deps up-to-date", "pass")
     score = max(0, 100 - n * 15)
-    detail = ", ".join(
-        f"{d.name} ({d.installed} → {d.latest})" for d in result.outdated
-    )
+    detail = ", ".join(f"{d.name} ({d.installed} → {d.latest})" for d in result.outdated)
     return CheckReport("Dependencies", score, 15, f"{n} outdated: {detail}", "warn")
 
 
 def score_large_files(result: LargeFilesResult) -> CheckReport:
     n = len(result.large_files)
     if n == 0:
-        return CheckReport(
-            "Large Files", 100, 10, f"No files ≥{result.threshold_kb}KB", "pass"
-        )
+        return CheckReport("Large Files", 100, 10, f"No files ≥{result.threshold_kb}KB", "pass")
     score = max(0, 100 - n * 20)
     detail = ", ".join(f"{f.path} ({f.size_kb}KB)" for f in result.large_files)
     return CheckReport("Large Files", score, 10, f"{n} large: {detail}", "warn")
@@ -174,13 +166,9 @@ def score_code_churn(result: CodeChurnResult) -> CheckReport:
 def score_commit_conventions(result: CommitConventionsResult) -> CheckReport:
     """Score based on commit message convention compliance."""
     if result.error:
-        return CheckReport(
-            "Commit Conventions", 75, 10, f"Skipped ({result.error})", "warn"
-        )
+        return CheckReport("Commit Conventions", 75, 10, f"Skipped ({result.error})", "warn")
     if result.total_commits == 0:
-        return CheckReport(
-            "Commit Conventions", 50, 10, "No commits to analyze", "warn"
-        )
+        return CheckReport("Commit Conventions", 50, 10, "No commits to analyze", "warn")
 
     score = int(result.compliance_rate * 100)
     status = "pass" if score >= 80 else "warn" if score >= 50 else "fail"
@@ -255,7 +243,9 @@ def score_test_coverage(result: TestCoverageResult) -> CheckReport:
     status = "pass" if score >= 70 else "warn" if score >= 40 else "fail"
 
     uncovered = result.files_without_tests
-    detail = f"{result.test_coverage_pct:.0f}% file coverage, {result.test_to_code_ratio:.1f}x ratio"
+    detail = (
+        f"{result.test_coverage_pct:.0f}% file coverage, {result.test_to_code_ratio:.1f}x ratio"
+    )
     if uncovered > 0:
         detail += f", {uncovered} files untested"
 
@@ -348,9 +338,7 @@ def score_doc_coverage(result: DocCoverageResult) -> CheckReport:
 def score_dependency_graph(result: DependencyGraphResult) -> CheckReport:
     """Score based on dependency graph analysis."""
     if result.error:
-        return CheckReport(
-            "Dependency Graph", 75, 5, f"Skipped ({result.error})", "warn"
-        )
+        return CheckReport("Dependency Graph", 75, 5, f"Skipped ({result.error})", "warn")
 
     score = 100
     parts = []
@@ -370,11 +358,7 @@ def score_dependency_graph(result: DependencyGraphResult) -> CheckReport:
 
     score = max(0, score)
     status = "pass" if score >= 80 else "warn" if score >= 50 else "fail"
-    detail = (
-        ", ".join(parts)
-        if parts
-        else f"{result.total_runtime} runtime deps, well-managed"
-    )
+    detail = ", ".join(parts) if parts else f"{result.total_runtime} runtime deps, well-managed"
 
     return CheckReport(
         "Dependency Graph",
@@ -392,7 +376,7 @@ def score_dependency_graph(result: DependencyGraphResult) -> CheckReport:
 def score_tech_debt(result: TechDebtResult) -> CheckReport:
     """Score based on technical debt analysis."""
     # Invert the debt_score (0 = no debt, 100 = max debt)
-    score = max(0, 100 - result.debt_score)
+    score = int(max(0, 100 - result.debt_score))
     status = "pass" if score >= 70 else "warn" if score >= 40 else "fail"
 
     parts = []
@@ -420,31 +404,31 @@ def score_tech_debt(result: TechDebtResult) -> CheckReport:
 
 def aggregate(
     path: str,
-    dirty: DirtyTreeResult,
-    stale: StaleBranchResult,
-    essentials: EssentialsResult,
-    deps: OutdatedDepsResult,
-    large: LargeFilesResult,
-    activity: LastCommitResult,
+    dirty: DirtyTreeResult | None = None,
+    stale: StaleBranchResult | None = None,
+    essentials: EssentialsResult | None = None,
+    deps: OutdatedDepsResult | None = None,
+    large: LargeFilesResult | None = None,
+    activity: LastCommitResult | None = None,
     # New checks (optional with None for backward compat)
-    code_churn: Optional[CodeChurnResult] = None,
-    commit_conventions: Optional[CommitConventionsResult] = None,
-    pr_review: Optional[PRReviewResult] = None,
-    test_coverage: Optional[TestCoverageResult] = None,
-    security: Optional[SecurityResult] = None,
-    doc_coverage: Optional[DocCoverageResult] = None,
-    dependency_graph: Optional[DependencyGraphResult] = None,
-    tech_debt: Optional[TechDebtResult] = None,
+    code_churn: CodeChurnResult | None = None,
+    commit_conventions: CommitConventionsResult | None = None,
+    pr_review: PRReviewResult | None = None,
+    test_coverage: TestCoverageResult | None = None,
+    security: SecurityResult | None = None,
+    doc_coverage: DocCoverageResult | None = None,
+    dependency_graph: DependencyGraphResult | None = None,
+    tech_debt: TechDebtResult | None = None,
     # Config overrides for weights
-    weight_overrides: Optional[Dict[str, int]] = None,
-    disabled_checks: Optional[List[str]] = None,
+    weight_overrides: dict[str, int] | None = None,
+    disabled_checks: list[str] | None = None,
 ) -> HealthReport:
     """Compute the aggregate health report."""
     disabled = set(disabled_checks or [])
     weights = weight_overrides or {}
 
     # Build all check reports
-    all_check_funcs: List[Tuple[str, Any, Any]] = [
+    all_check_funcs: list[tuple[str, Any, Any]] = [
         ("dirty_tree", dirty, score_dirty_tree),
         ("stale_branches", stale, score_stale_branches),
         ("essentials", essentials, score_essentials),
@@ -461,7 +445,7 @@ def aggregate(
         ("tech_debt", tech_debt, score_tech_debt),
     ]
 
-    checks: List[CheckReport] = []
+    checks: list[CheckReport] = []
     for name, result, scorer in all_check_funcs:
         if name in disabled:
             continue

@@ -12,11 +12,11 @@ class StaleBranchResult:
     """Result of stale-branch check."""
 
     default_branch: str
-    stale_branches: List[str]
+    stale_branches: list[str]
     max_stale_age_days: int
 
 
-def _git(args: List[str], cwd: str | None = None) -> str:
+def _git(args: list[str], cwd: str | None = None) -> str:
     r = subprocess.run(["git"] + args, capture_output=True, text=True, cwd=cwd)
     return r.stdout.strip()
 
@@ -31,7 +31,7 @@ def get_default_branch(repo_path: str | None = None) -> str:
     return head.split("/")[-1] if head else "main"
 
 
-def list_merged_branches(repo_path: str | None = None) -> List[str]:
+def list_merged_branches(repo_path: str | None = None) -> list[str]:
     """Return local branches that have been merged into the default branch."""
     default = get_default_branch(repo_path)
     out = _git(["branch", "--merged", default], cwd=repo_path)
@@ -43,7 +43,7 @@ def list_merged_branches(repo_path: str | None = None) -> List[str]:
     return branches
 
 
-def list_local_branches(repo_path: str | None = None) -> List[str]:
+def list_local_branches(repo_path: str | None = None) -> list[str]:
     """Return all local branch names."""
     out = _git(["branch"], cwd=repo_path)
     branches = []

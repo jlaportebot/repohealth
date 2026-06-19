@@ -40,11 +40,11 @@ class TestCoverageResult:
     files_with_tests: int
     files_without_tests: int
     test_coverage_pct: float  # % of source files with corresponding tests
-    test_files: List[TestFileInfo]
-    uncovered_source: List[str]  # source files without matching tests
+    test_files: list[TestFileInfo]
+    uncovered_source: list[str]  # source files without matching tests
     test_framework: str  # "pytest", "unittest", "none", "mixed"
     has_pytest_cov: bool  # whether pytest-cov is installed
-    error: Optional[str] = None
+    error: str | None = None
 
 
 # Test file patterns
@@ -80,7 +80,7 @@ SKIP_DIRS = {
 }
 
 
-def _count_test_items(filepath: Path) -> Tuple[int, int]:
+def _count_test_items(filepath: Path) -> tuple[int, int]:
     """Count test functions and test classes in a file."""
     test_funcs = 0
     test_classes = 0
@@ -88,9 +88,7 @@ def _count_test_items(filepath: Path) -> Tuple[int, int]:
         content = filepath.read_text(errors="ignore")
         for line in content.splitlines():
             stripped = line.strip()
-            if stripped.startswith("def test_") or stripped.startswith(
-                "async def test_"
-            ):
+            if stripped.startswith("def test_") or stripped.startswith("async def test_"):
                 test_funcs += 1
             elif stripped.startswith("class Test") and ":" in stripped:
                 test_classes += 1
@@ -103,8 +101,7 @@ def _is_test_file(filepath: Path) -> bool:
     """Check if a file is a test file."""
     name = filepath.name
     return any(
-        name.startswith(p.rstrip("_").rstrip("s")) or name.startswith(p)
-        for p in ["test_", "test"]
+        name.startswith(p.rstrip("_").rstrip("s")) or name.startswith(p) for p in ["test_", "test"]
     )
     # Simpler check
     return (
@@ -115,9 +112,7 @@ def _is_test_file(filepath: Path) -> bool:
     )
 
 
-def _has_corresponding_test(
-    source_path: str, test_dirs: List[Path], source_root: Path
-) -> bool:
+def _has_corresponding_test(source_path: str, test_dirs: list[Path], source_root: Path) -> bool:
     """Check if a source file has a corresponding test file."""
     # Derive expected test paths
     rel = (
@@ -144,14 +139,12 @@ def _has_corresponding_test(
     return False
 
 
-def _find_test_dirs(base: Path) -> List[Path]:
+def _find_test_dirs(base: Path) -> list[Path]:
     """Find all test directories in the repo."""
-    test_dirs: List[Path] = []
+    test_dirs: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(base):
         # Skip hidden and common non-source dirs
-        dirnames[:] = [
-            d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")
-        ]
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
         if dirpath == base:
             dirname = ""
         else:
@@ -198,8 +191,8 @@ def check(repo_path: str | None = None) -> TestCoverageResult:
     test_dirs = _find_test_dirs(base)
 
     # Walk the tree and classify files
-    source_files: List[SourceFileInfo] = []
-    test_files: List[TestFileInfo] = []
+    source_files: list[SourceFileInfo] = []
+    test_files: list[TestFileInfo] = []
     source_lines = 0
     test_lines = 0
 
@@ -209,9 +202,7 @@ def check(repo_path: str | None = None) -> TestCoverageResult:
 
     for dirpath, dirnames, filenames in os.walk(base):
         # Skip directories
-        dirnames[:] = [
-            d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")
-        ]
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
 
         for fname in filenames:
             if not fname.endswith(".py"):
@@ -228,9 +219,7 @@ def check(repo_path: str | None = None) -> TestCoverageResult:
                 fname.startswith("test_")
                 or fname.endswith("_test.py")
                 or fname == "tests.py"
-                or any(
-                    part in TEST_DIR_PATTERNS for part in fpath.relative_to(base).parts
-                )
+                or any(part in TEST_DIR_PATTERNS for part in fpath.relative_to(base).parts)
             )
 
             if is_test:
@@ -268,7 +257,7 @@ def check(repo_path: str | None = None) -> TestCoverageResult:
                 source_lines += line_count
 
     # Check which source files have corresponding tests
-    uncovered: List[str] = []
+    uncovered: list[str] = []
     files_with_tests = 0
 
     for sf in source_files:

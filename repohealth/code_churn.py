@@ -26,16 +26,16 @@ class FileChurn:
 class CodeChurnResult:
     """Result of code-churn check."""
 
-    top_files: List[FileChurn]
+    top_files: list[FileChurn]
     total_commits: int
     total_insertions: int
     total_deletions: int
     avg_churn_per_commit: float
     high_churn_files: int  # files with churn_score > threshold
-    error: Optional[str] = None
+    error: str | None = None
 
 
-def _git(args: List[str], cwd: str | None = None) -> str:
+def _git(args: list[str], cwd: str | None = None) -> str:
     r = subprocess.run(["git"] + args, capture_output=True, text=True, cwd=cwd)
     return r.stdout.strip()
 
@@ -116,16 +116,14 @@ def check(
         file_stats[filepath]["deletions"] += dele
 
     # Count total commits
-    commit_count_str = _git(
-        ["rev-list", "--count", "HEAD", f"--since={since}"], cwd=repo_path
-    )
+    commit_count_str = _git(["rev-list", "--count", "HEAD", f"--since={since}"], cwd=repo_path)
     try:
         total_commits = int(commit_count_str)
     except ValueError:
         total_commits = 0
 
     # Build FileChurn objects
-    churn_list: List[FileChurn] = []
+    churn_list: list[FileChurn] = []
     for filepath, stats in file_stats.items():
         commits = stats["commits"]
         ins = stats["insertions"]
@@ -144,15 +142,9 @@ def check(
     # Sort by total lines changed descending
     churn_list.sort(key=lambda f: f.total_lines_changed, reverse=True)
     top_files = churn_list[:top_n]
-    high_churn_files = sum(
-        1 for f in churn_list if f.churn_score > high_churn_threshold
-    )
+    high_churn_files = sum(1 for f in churn_list if f.churn_score > high_churn_threshold)
 
-    avg_churn = (
-        (total_insertions + total_deletions) / total_commits
-        if total_commits > 0
-        else 0.0
-    )
+    avg_churn = (total_insertions + total_deletions) / total_commits if total_commits > 0 else 0.0
 
     return CodeChurnResult(
         top_files=top_files,

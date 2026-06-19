@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -21,10 +21,10 @@ class HistoryEntry:
     path: str
     score: int
     grade: str
-    checks: List[Dict[str, Any]]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    checks: list[dict[str, Any]]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "timestamp": self.timestamp,
             "path": self.path,
@@ -35,7 +35,7 @@ class HistoryEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "HistoryEntry":
+    def from_dict(cls, data: dict[str, Any]) -> "HistoryEntry":
         return cls(
             timestamp=data.get("timestamp", ""),
             path=data.get("path", ""),
@@ -54,11 +54,11 @@ class HistoryDiff:
     later: HistoryEntry
     score_delta: int
     grade_changed: bool
-    check_deltas: Dict[str, int]  # check name -> score delta
-    improved: List[str]
-    regressed: List[str]
-    new_checks: List[str]
-    removed_checks: List[str]
+    check_deltas: dict[str, int]  # check name -> score delta
+    improved: list[str]
+    regressed: list[str]
+    new_checks: list[str]
+    removed_checks: list[str]
 
 
 def _history_dir(repo_path: str) -> Path:
@@ -67,7 +67,7 @@ def _history_dir(repo_path: str) -> Path:
 
 
 def save_report(
-    report_data: Dict[str, Any],
+    report_data: dict[str, Any],
     repo_path: str = ".",
 ) -> Path:
     """Save a health report to history.
@@ -87,7 +87,7 @@ def save_report(
     if not gitignore.exists():
         gitignore.write_text("# repohealth history data\n*\n!.gitignore\n")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # Use microseconds to ensure unique filenames when saving rapidly
     filename = f"report_{now.strftime('%Y%m%d_%H%M%S')}_{now.microsecond:06d}.json"
     filepath = hist_dir / filename
@@ -100,7 +100,7 @@ def save_report(
     return filepath
 
 
-def load_history(repo_path: str = ".", limit: int = 50) -> List[HistoryEntry]:
+def load_history(repo_path: str = ".", limit: int = 50) -> list[HistoryEntry]:
     """Load history entries from the history directory.
 
     Returns entries sorted by timestamp (oldest first).
@@ -109,7 +109,7 @@ def load_history(repo_path: str = ".", limit: int = 50) -> List[HistoryEntry]:
     if not hist_dir.exists():
         return []
 
-    entries: List[HistoryEntry] = []
+    entries: list[HistoryEntry] = []
     for filepath in sorted(hist_dir.glob("report_*.json")):
         try:
             data = json.loads(filepath.read_text())
@@ -128,19 +128,15 @@ def compare_entries(earlier: HistoryEntry, later: HistoryEntry) -> HistoryDiff:
     grade_changed = earlier.grade != later.grade
 
     # Build check lookup dicts
-    earlier_checks = {
-        c["name"]: c.get("score", 0) for c in earlier.checks if isinstance(c, dict)
-    }
-    later_checks = {
-        c["name"]: c.get("score", 0) for c in later.checks if isinstance(c, dict)
-    }
+    earlier_checks = {c["name"]: c.get("score", 0) for c in earlier.checks if isinstance(c, dict)}
+    later_checks = {c["name"]: c.get("score", 0) for c in later.checks if isinstance(c, dict)}
 
     # Compute deltas
-    check_deltas: Dict[str, int] = {}
-    improved: List[str] = []
-    regressed: List[str] = []
-    new_checks: List[str] = []
-    removed_checks: List[str] = []
+    check_deltas: dict[str, int] = {}
+    improved: list[str] = []
+    regressed: list[str] = []
+    new_checks: list[str] = []
+    removed_checks: list[str] = []
 
     all_names = set(earlier_checks.keys()) | set(later_checks.keys())
 
@@ -175,7 +171,7 @@ def compare_entries(earlier: HistoryEntry, later: HistoryEntry) -> HistoryDiff:
     )
 
 
-def get_trend(entries: List[HistoryEntry]) -> str:
+def get_trend(entries: list[HistoryEntry]) -> str:
     """Compute the overall trend from history entries.
 
     Returns: "improving", "stable", "declining", "insufficient"
@@ -205,10 +201,9 @@ def get_trend(entries: List[HistoryEntry]) -> str:
 
     if slope > 2:
         return "improving"
-    elif slope < -2:
+    if slope < -2:
         return "declining"
-    else:
-        return "stable"
+    return "stable"
 
 
 def prune_history(repo_path: str = ".", keep: int = 100) -> int:

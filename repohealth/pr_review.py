@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from dataclasses import dataclass
 from typing import List, Optional
+from datetime import UTC
 
 
 @dataclass
@@ -20,7 +21,7 @@ class PRMetrics:
     additions: int
     deletions: int
     changed_files: int
-    days_to_merge: Optional[int]  # None if still open
+    days_to_merge: int | None  # None if still open
 
 
 @dataclass
@@ -36,11 +37,11 @@ class PRReviewResult:
     stale_prs: int  # open PRs older than 30 days
     unreviewed_prs: int  # open PRs with 0 reviews
     large_prs: int  # PRs with > 400 line changes
-    recent_prs: List[PRMetrics]
-    error: Optional[str] = None
+    recent_prs: list[PRMetrics]
+    error: str | None = None
 
 
-def _gh(args: List[str], cwd: str | None = None) -> str:
+def _gh(args: list[str], cwd: str | None = None) -> str:
     r = subprocess.run(["gh"] + args, capture_output=True, text=True, cwd=cwd)
     return r.stdout.strip()
 
@@ -141,12 +142,12 @@ def check(
 
     from datetime import datetime, timezone
 
-    prs: List[PRMetrics] = []
+    prs: list[PRMetrics] = []
     open_count = 0
     merged_count = 0
     closed_no_merge = 0
     total_reviews = 0
-    days_to_merge_list: List[int] = []
+    days_to_merge_list: list[int] = []
     stale = 0
     unreviewed = 0
     large = 0
@@ -172,7 +173,7 @@ def check(
         # Compute age in days
         try:
             created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             age_days = (now - created).days
         except (ValueError, AttributeError):
             age_days = 0
@@ -219,9 +220,7 @@ def check(
 
     total = len(prs)
     avg_reviews = total_reviews / total if total > 0 else 0.0
-    avg_merge = (
-        sum(days_to_merge_list) / len(days_to_merge_list) if days_to_merge_list else 0.0
-    )
+    avg_merge = sum(days_to_merge_list) / len(days_to_merge_list) if days_to_merge_list else 0.0
 
     return PRReviewResult(
         total_prs=total,

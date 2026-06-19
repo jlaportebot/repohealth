@@ -16,7 +16,7 @@ except ImportError:
 
 
 # Default config values
-DEFAULTS: Dict[str, Any] = {
+DEFAULTS: dict[str, Any] = {
     "large_file_threshold_kb": 1024,
     "stale_branch_days": 30,
     "high_churn_threshold": 50.0,
@@ -65,7 +65,7 @@ class CheckConfig:
 
     enabled: bool = True
     weight: int = 10
-    options: Dict[str, Any] = field(default_factory=dict)
+    options: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -86,12 +86,12 @@ class RepoHealthConfig:
     long_function_lines: int = 50
     history_keep: int = 100
     save_history: bool = True
-    checks: Dict[str, CheckConfig] = field(default_factory=dict)
+    checks: dict[str, CheckConfig] = field(default_factory=dict)
     output_format: str = "rich"
-    fail_on_grade: List[str] = field(default_factory=lambda: ["D", "F"])
+    fail_on_grade: list[str] = field(default_factory=lambda: ["D", "F"])
     show_tips: bool = True
-    ignore_paths: List[str] = field(default_factory=list)
-    ignore_checks: List[str] = field(default_factory=list)
+    ignore_paths: list[str] = field(default_factory=list)
+    ignore_checks: list[str] = field(default_factory=list)
 
     def is_check_enabled(self, name: str) -> bool:
         """Check if a specific check is enabled."""
@@ -109,9 +109,7 @@ class RepoHealthConfig:
             return 10  # Default weight
         return check.weight
 
-    def get_check_option(
-        self, check_name: str, option: str, default: Any = None
-    ) -> Any:
+    def get_check_option(self, check_name: str, option: str, default: Any = None) -> Any:
         """Get a specific option for a check."""
         check = self.checks.get(check_name)
         if check is None:
@@ -119,7 +117,7 @@ class RepoHealthConfig:
         return check.options.get(option, default)
 
 
-def _deep_merge(base: Dict, override: Dict) -> Dict:
+def _deep_merge(base: dict, override: dict) -> dict:
     """Deep merge two dicts, override takes precedence."""
     result = base.copy()
     for key, value in override.items():
@@ -140,7 +138,7 @@ def load_config(repo_path: str | None = None) -> RepoHealthConfig:
     4. Defaults
     """
     base = Path(repo_path) if repo_path else Path.cwd()
-    config_data: Dict[str, Any] = {}
+    config_data: dict[str, Any] = {}
 
     # Try YAML configs
     for config_file in [".repohealth.yml", ".repohealth.yaml"]:
@@ -165,7 +163,7 @@ def load_config(repo_path: str | None = None) -> RepoHealthConfig:
                 if stripped == "[tool.repohealth]":
                     in_section = True
                     continue
-                elif stripped.startswith("[") and in_section:
+                if stripped.startswith("[") and in_section:
                     in_section = False
                     continue
                 if in_section and "=" in stripped:

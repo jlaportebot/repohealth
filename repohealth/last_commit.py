@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 
 @dataclass
@@ -30,8 +30,8 @@ def check(repo_path: str | None = None) -> LastCommitResult:
     try:
         dt = datetime.fromisoformat(iso)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        now = datetime.now(timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
+        now = datetime.now(UTC)
         days = (now - dt).days
         return LastCommitResult(last_commit_date=iso[:10], days_since_last_commit=days)
     except (ValueError, TypeError):

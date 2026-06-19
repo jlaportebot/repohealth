@@ -10,7 +10,7 @@ import pytest
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
 
-@pytest.fixture()
+@pytest.fixture
 def git_repo(tmp_path: Path):
     """Create a minimal git repo for testing."""
     subprocess.run(["git", "init"], cwd=str(tmp_path), check=True, capture_output=True)
@@ -32,9 +32,7 @@ def git_repo(tmp_path: Path):
     lic.write_text("MIT\n")
     gi = tmp_path / ".gitignore"
     gi.write_text("__pycache__/\n")
-    subprocess.run(
-        ["git", "add", "."], cwd=str(tmp_path), check=True, capture_output=True
-    )
+    subprocess.run(["git", "add", "."], cwd=str(tmp_path), check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", "feat: initial commit"],
         cwd=str(tmp_path),
@@ -44,7 +42,7 @@ def git_repo(tmp_path: Path):
     return tmp_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def python_repo(git_repo: Path):
     """Create a Python project repo with source and test files."""
     # Create source file
@@ -106,9 +104,7 @@ dependencies = ["click>=8.0", "rich>=13.0"]
 dev = ["pytest>=7.0", "pytest-cov"]
 """)
 
-    subprocess.run(
-        ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
-    )
+    subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", "feat: add project structure"],
         cwd=str(git_repo),
@@ -188,9 +184,7 @@ class TestCodeChurn:
         readme = git_repo / "README.md"
         for i in range(3):
             readme.write_text(f"# Test v{i}\n")
-            subprocess.run(
-                ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
-            )
+            subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
             subprocess.run(
                 ["git", "commit", "-m", f"update readme v{i}"],
                 cwd=str(git_repo),
@@ -227,9 +221,7 @@ class TestCommitConventions:
     def test_non_conventional(self, git_repo):
         """Add a non-conventional commit and check detection."""
         (git_repo / "extra.txt").write_text("stuff\n")
-        subprocess.run(
-            ["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True
-        )
+        subprocess.run(["git", "add", "."], cwd=str(git_repo), check=True, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "random update"],
             cwd=str(git_repo),
@@ -368,9 +360,7 @@ class TestTechDebt:
 
         # Create a complex function
         (tmp_path / "complex.py").write_text(
-            "def complex_func(x):\n"
-            + "\n".join(f"    if x > {i}: pass" for i in range(15))
-            + "\n"
+            "def complex_func(x):\n" + "\n".join(f"    if x > {i}: pass" for i in range(15)) + "\n"
         )
         result = check(str(tmp_path))
         assert len(result.high_complexity_functions) > 0
@@ -406,9 +396,7 @@ class TestScoring:
             ),
             deps=OutdatedDepsResult(source="pyproject.toml", outdated=[]),
             large=LargeFilesResult(threshold_kb=1024, large_files=[]),
-            activity=LastCommitResult(
-                last_commit_date="2026-05-25", days_since_last_commit=0
-            ),
+            activity=LastCommitResult(last_commit_date="2026-05-25", days_since_last_commit=0),
         )
         assert report.score == 100
         assert report.grade == "A"
@@ -434,9 +422,7 @@ class TestScoring:
             ),
             deps=OutdatedDepsResult(source="pyproject.toml", outdated=[]),
             large=LargeFilesResult(threshold_kb=1024, large_files=[]),
-            activity=LastCommitResult(
-                last_commit_date="2026-05-25", days_since_last_commit=0
-            ),
+            activity=LastCommitResult(last_commit_date="2026-05-25", days_since_last_commit=0),
             code_churn=CodeChurnResult(
                 top_files=[],
                 total_commits=10,
@@ -490,9 +476,7 @@ class TestScoring:
             ),
             deps=OutdatedDepsResult(source="pyproject.toml", outdated=[]),
             large=LargeFilesResult(threshold_kb=1024, large_files=[]),
-            activity=LastCommitResult(
-                last_commit_date="2026-05-25", days_since_last_commit=0
-            ),
+            activity=LastCommitResult(last_commit_date="2026-05-25", days_since_last_commit=0),
             disabled_checks=["large_files"],
         )
         check_names = [c.name for c in report.checks]

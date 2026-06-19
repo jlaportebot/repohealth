@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "CLI tool to assess Git repository health — stale branches, uncommitted changes, outdated deps, and more"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 authors = [{name = "Jonathan Laporte"}]
 keywords = ["git", "health", "cli", "repository", "lint", "devtools"]
 classifiers = [
@@ -16,6 +16,9 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Quality Assurance",
     "Topic :: Utilities",
 ]
@@ -24,11 +27,94 @@ dependencies = ["click>=8.0", "rich>=13.0", "pyyaml>=6.0"]
 [project.scripts]
 repohealth = "repohealth.cli:main"
 
-[project.optional-dependencies]
-dev = ["pytest>=7.0", "pytest-cov", "ruff>=0.1"]
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.5.0",
+    "ty>=0.0.51",
+]
 
 [tool.setuptools.packages.find]
 include = ["repohealth*"]
 
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "ALL",
+]
+ignore = [
+    "D",        # docstring rules (too strict for legacy)
+    "COM812",   # trailing comma in format string
+    "ISC001",   # redundant isinstance check
+    "PLR2004",  # magic value used in comparison
+    "ANN001",   # missing argument type annotation
+    "ANN002",   # missing argument type annotation
+    "ANN003",   # missing argument type annotation
+    "UP037",    # use `os.PathLike` instead of `str` for path arguments
+    "T201",     # print statement
+    "E501",     # line too long (handled by formatter)
+    "TC003",    # type checking annotation
+    "I001",     # import block sorting
+    "I002",     # import block sorting
+    "F401",     # unused import
+    "C901",     # function too complex
+    "PLR0912",  # too many branches
+    "PLR0915",  # too many statements
+    "N806",     # variable name should be lowercase
+    "DTZ005",   # datetime.datetime.now() called without timezone
+    "TC001",    # type checking annotation
+    "FBT002",   # boolean argument default
+    "PERF401",  # performance hint
+    "S603",     # subprocess call without shell
+    "PLW1510",  # try/except with too broad exception
+    "S607",     # partial path to executable
+    "PLC0415",  # import not at top level
+    "RUF010",   # redundant type annotation
+    "F541",     # f-string missing placeholder
+    "ANN204",   # missing return type annotation for special method
+    "FBT001",   # boolean positional argument
+    "RUF005",   # redundant type annotation
+    "BLE001",   # broad exception caught
+    "DTZ901",   # datetime.datetime.now() called without timezone
+    "C420",     # list/dict/set comprehension can be replaced
+    "N817",     # constant name should be uppercase
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101",     # assert statements in tests
+    "ANN201",   # missing return type annotation in tests
+    "ANN001",   # missing argument type annotation in tests
+    "ANN002",   # missing argument type annotation in tests
+    "ANN003",   # missing argument type annotation in tests
+    "PLR6301",  # method could be a function in tests
+    "PLR2004",  # magic values in tests
+    "PLC1901",  # empty string comparison in tests
+    "PLC2701",  # private name imports in tests
+    "F401",     # unused imports in tests (pytest fixtures)
+    "INP001",   # implicit namespace package in tests
+    "S105",     # hardcoded password false positives in tests
+    "DTZ001",   # datetime without timezone in tests
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-v --cov=repohealth --cov-report=term-missing --cov-fail-under=70"
+
+[tool.ty.environment]
+python-version = "3.11"
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.rules]
+possibly-unresolved-reference = "error"
+unused-ignore-comment = "warn"

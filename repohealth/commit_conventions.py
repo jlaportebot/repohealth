@@ -40,11 +40,7 @@ class CommitMessage:
     @property
     def is_compliant(self) -> bool:
         """Check if commit follows conventional commit format."""
-        return (
-            self.is_conventional
-            and not self.is_long_subject
-            and not self.ends_with_period
-        )
+        return self.is_conventional and not self.is_long_subject and not self.ends_with_period
 
 
 @dataclass
@@ -58,11 +54,11 @@ class CommitConventionsResult:
     trailer_count: int
     empty_message_count: int
     compliance_rate: float  # 0.0 - 1.0
-    sample_non_compliant: List[CommitMessage]
-    error: Optional[str] = None
+    sample_non_compliant: list[CommitMessage]
+    error: str | None = None
 
 
-def _git(args: List[str], cwd: str | None = None) -> str:
+def _git(args: list[str], cwd: str | None = None) -> str:
     r = subprocess.run(["git"] + args, capture_output=True, text=True, cwd=cwd)
     return r.stdout.strip()
 
@@ -115,8 +111,8 @@ def check(
             error="No commits found in range",
         )
 
-    commits: List[CommitMessage] = []
-    non_compliant_samples: List[CommitMessage] = []
+    commits: list[CommitMessage] = []
+    non_compliant_samples: list[CommitMessage] = []
 
     for line in r.stdout.strip().splitlines():
         parts = line.split("|", 2)
