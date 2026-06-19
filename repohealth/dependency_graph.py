@@ -138,7 +138,13 @@ def _parse_pyproject_toml(filepath: Path) -> tuple[list[DependencyInfo], str]:
                     "testing",
                     "development",
                 )
-                _add_dep(deps, dep_match.group(1), current_optional_group, is_dev=is_dev, is_optional=True)
+                _add_dep(
+                    deps,
+                    dep_match.group(1),
+                    current_optional_group,
+                    is_dev=is_dev,
+                    is_optional=True,
+                )
             continue
 
         if in_optional and stripped == "]":
@@ -189,8 +195,8 @@ def _parse_requirements_txt(filepath: Path, is_dev: bool = False) -> list[Depend
     except OSError:
         return deps
 
-    for line in content.splitlines():
-        line = line.strip()
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
         if not line or line.startswith(("#", "-")):
             continue
 
@@ -336,11 +342,13 @@ def _find_third_party_imports(base: Path) -> set[str]:
                         top = alias.name.split(".")[0]
                         if top not in stdlib_names:
                             imports.add(top.lower())
-                elif isinstance(node, ast.ImportFrom):
-                    if node.module and node.level == 0:  # Not relative import
-                        top = node.module.split(".")[0]
-                        if top not in stdlib_names:
-                            imports.add(top.lower())
+                elif isinstance(node, ast.ImportFrom):  # noqa: SIM102
+                    if (
+                        node.module
+                        and node.level == 0
+                        and node.module.split(".")[0] not in stdlib_names
+                    ):
+                        imports.add(node.module.split(".")[0].lower())
 
     return imports
 

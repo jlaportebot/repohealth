@@ -260,7 +260,7 @@ def check(  # noqa: PLR0913
     cfg = load_config(path)
     if config_file:
         # Override with specific config file
-        try:
+        with contextlib.suppress(Exception):
             import yaml
 
             config_path = Path(config_file)
@@ -273,9 +273,6 @@ def check(  # noqa: PLR0913
             # Rebuild config... simplified: just update threshold
             if "large_file_threshold_kb" in merged:
                 cfg.large_file_threshold_kb = int(merged["large_file_threshold_kb"])
-        except Exception:
-            # Config file may be malformed; use defaults
-            pass
 
     # Override threshold if specified on command line
     if threshold != 1024:
@@ -306,7 +303,7 @@ def check(  # noqa: PLR0913
         data = _report_to_dict(report)
         click.echo(_json.dumps(data, indent=2))
     else:
-        assert console is not None
+        assert console is not None  # noqa: S101
         _print_rich_report(report, console, show_tips=not no_tips)
 
     # Exit with non-zero if grade is in fail list

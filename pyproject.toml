@@ -103,6 +103,12 @@ ignore = [
     "FBT003",   # boolean positional value in function call
     "S108",     # probable insecure usage of temporary file
 ]
+"repohealth/tech_debt.py" = [
+    "TD002",    # false positive: comment explains marker field values, not actual TODO
+    "TD003",    # false positive: same
+    "TD004",    # false positive: same
+    "FIX002",   # false positive: same
+]
 
 [tool.ruff.format]
 quote-style = "double"
