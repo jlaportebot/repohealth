@@ -1,9 +1,9 @@
-"""Scoring engine — aggregate check results into a health score (0–100)."""
+"""Scoring engine - aggregate check results into a health score (0-100)."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from .code_churn import CodeChurnResult
 from .commit_conventions import CommitConventionsResult
@@ -26,7 +26,7 @@ class CheckReport:
     """Per-check report with score and detail."""
 
     name: str
-    score: int  # 0–100
+    score: int  # 0-100
     weight: int
     detail: str
     status: str  # "pass", "warn", "fail"
@@ -38,7 +38,7 @@ class HealthReport:
     """Aggregate health report."""
 
     path: str
-    score: int  # weighted average 0–100
+    score: int  # weighted average 0-100
     grade: str  # A/B/C/D/F
     checks: list[CheckReport] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -402,7 +402,7 @@ def score_tech_debt(result: TechDebtResult) -> CheckReport:
 # ── Aggregation ─────────────────────────────────────────────────────────────
 
 
-def aggregate(
+def aggregate(  # noqa: PLR0913
     path: str,
     dirty: DirtyTreeResult | None = None,
     stale: StaleBranchResult | None = None,

@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, UTC
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
 # Default history directory

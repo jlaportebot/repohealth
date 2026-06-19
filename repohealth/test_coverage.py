@@ -6,7 +6,7 @@ import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
 
 @dataclass
@@ -88,7 +88,7 @@ def _count_test_items(filepath: Path) -> tuple[int, int]:
         content = filepath.read_text(errors="ignore")
         for line in content.splitlines():
             stripped = line.strip()
-            if stripped.startswith("def test_") or stripped.startswith("async def test_"):
+            if stripped.startswith(("def test_", "async def test_")):
                 test_funcs += 1
             elif stripped.startswith("class Test") and ":" in stripped:
                 test_classes += 1
@@ -100,10 +100,6 @@ def _count_test_items(filepath: Path) -> tuple[int, int]:
 def _is_test_file(filepath: Path) -> bool:
     """Check if a file is a test file."""
     name = filepath.name
-    return any(
-        name.startswith(p.rstrip("_").rstrip("s")) or name.startswith(p) for p in ["test_", "test"]
-    )
-    # Simpler check
     return (
         name.startswith("test_")
         or name.endswith("_test.py")
@@ -142,13 +138,10 @@ def _has_corresponding_test(source_path: str, test_dirs: list[Path], source_root
 def _find_test_dirs(base: Path) -> list[Path]:
     """Find all test directories in the repo."""
     test_dirs: list[Path] = []
-    for dirpath, dirnames, filenames in os.walk(base):
+    for dirpath, dirnames, _filenames in os.walk(base):
         # Skip hidden and common non-source dirs
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
-        if dirpath == base:
-            dirname = ""
-        else:
-            dirname = Path(dirpath).name
+        dirname = "" if dirpath == base else Path(dirpath).name
         if dirname in TEST_DIR_PATTERNS:
             test_dirs.append(Path(dirpath))
     return test_dirs

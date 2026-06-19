@@ -62,7 +62,7 @@ class TestCodeChurn:
         top_paths = [f.path for f in result.top_files]
         assert any("README" in p for p in top_paths)
 
-    def test_churn_file_stats(self, git_repo):
+    def test_churn_file_stats(self):
         """Test that FileChurn properties work correctly."""
         from repohealth.code_churn import FileChurn
 
@@ -298,7 +298,7 @@ import myproject
 ## License
 MIT
 """)
-        found, missing = _analyze_readme(tmp_path)
+        found, _missing = _analyze_readme(tmp_path)
         assert "installation" in found
         assert "usage" in found
         assert "license" in found

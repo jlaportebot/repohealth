@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 # Try to import yaml, fall back to basic parsing if not available
 try:
@@ -109,7 +109,7 @@ class RepoHealthConfig:
             return 10  # Default weight
         return check.weight
 
-    def get_check_option(self, check_name: str, option: str, default: Any = None) -> Any:
+    def get_check_option(self, check_name: str, option: str, default: Any = None) -> Any:  # noqa: ANN401
         """Get a specific option for a check."""
         check = self.checks.get(check_name)
         if check is None:
@@ -145,7 +145,7 @@ def load_config(repo_path: str | None = None) -> RepoHealthConfig:
         config_path = base / config_file
         if config_path.exists() and HAS_YAML:
             try:
-                with open(config_path) as f:
+                with config_path.open() as f:
                     file_data = yaml.safe_load(f) or {}
                 config_data = _deep_merge(config_data, file_data)
             except (yaml.YAMLError, OSError):

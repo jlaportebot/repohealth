@@ -7,7 +7,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 # Debt markers to search for
@@ -108,14 +108,20 @@ def _compute_cyclomatic_complexity(tree: ast.AST) -> int:
 
     for node in ast.walk(tree):
         # Decision points
-        if (
-            isinstance(node, ast.If)
-            or isinstance(node, ast.For)
-            or isinstance(node, ast.While)
-            or isinstance(node, ast.ExceptHandler)
-            or isinstance(node, ast.With)
-            or isinstance(node, ast.Assert)
-            or isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp))
+        if isinstance(
+            node,
+            (
+                ast.If,
+                ast.For,
+                ast.While,
+                ast.ExceptHandler,
+                ast.With,
+                ast.Assert,
+                ast.ListComp,
+                ast.SetComp,
+                ast.DictComp,
+                ast.GeneratorExp,
+            ),
         ):
             complexity += 1
         elif isinstance(node, ast.BoolOp):

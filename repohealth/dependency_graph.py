@@ -7,7 +7,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 
 
 @dataclass
@@ -115,14 +115,14 @@ def _parse_pyproject_toml(filepath: Path) -> tuple[list[DependencyInfo], str]:
             if match:
                 inline = match.group(1)
                 for dep_match in re.finditer(r'"([^"]+)"', inline):
-                    _add_dep(deps, dep_match.group(1), "runtime", False, False)
+                    _add_dep(deps, dep_match.group(1), "runtime", is_dev=False, is_optional=False)
             continue
 
         if in_project_deps and stripped.startswith('"'):
             # Dependency line in the dependencies array
             dep_match = re.match(r'"([^"]+)"', stripped)
             if dep_match:
-                _add_dep(deps, dep_match.group(1), "runtime", False, False)
+                _add_dep(deps, dep_match.group(1), "runtime", is_dev=False, is_optional=False)
             continue
 
         if in_project_deps and stripped == "]":
@@ -138,7 +138,7 @@ def _parse_pyproject_toml(filepath: Path) -> tuple[list[DependencyInfo], str]:
                     "testing",
                     "development",
                 )
-                _add_dep(deps, dep_match.group(1), current_optional_group, is_dev, True)
+                _add_dep(deps, dep_match.group(1), current_optional_group, is_dev=is_dev, is_optional=True)
             continue
 
         if in_optional and stripped == "]":
@@ -150,7 +150,7 @@ def _parse_pyproject_toml(filepath: Path) -> tuple[list[DependencyInfo], str]:
             if match:
                 inline = match.group(1)
                 for dep_match in re.finditer(r'"([^"]+)"', inline):
-                    _add_dep(deps, dep_match.group(1), "build", False, False)
+                    _add_dep(deps, dep_match.group(1), "build", is_dev=False, is_optional=False)
 
     return deps, "pyproject.toml"
 
@@ -191,7 +191,7 @@ def _parse_requirements_txt(filepath: Path, is_dev: bool = False) -> list[Depend
 
     for line in content.splitlines():
         line = line.strip()
-        if not line or line.startswith("#") or line.startswith("-"):
+        if not line or line.startswith(("#", "-")):
             continue
 
         match = re.match(r"([a-zA-Z0-9_.-]+)\s*(.*)", line)

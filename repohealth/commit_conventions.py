@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import subprocess
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 
 # Conventional commit pattern: type(scope)!: description

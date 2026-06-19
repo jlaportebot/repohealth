@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import json as _json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import click
 from rich.console import Console
@@ -112,7 +113,7 @@ def _run_checks(repo_path: str, cfg: RepoHealthConfig) -> HealthReport:
     if cfg.is_check_enabled("tech_debt"):
         debt_result = tech_debt.check(repo_path, max_items=cfg.tech_debt_max_items)
 
-    report = scoring.aggregate(  # type: ignore[arg-type]
+    return scoring.aggregate(  # type: ignore[arg-type]
         path=repo_path,
         dirty=dirty_result,
         stale=stale_result,
@@ -131,8 +132,6 @@ def _run_checks(repo_path: str, cfg: RepoHealthConfig) -> HealthReport:
         weight_overrides=weights or None,
         disabled_checks=list(disabled),
     )
-
-    return report
 
 
 def _report_to_dict(report: HealthReport) -> dict[str, Any]:
@@ -243,7 +242,7 @@ def main() -> None:
 @click.option("--save", "-s", is_flag=True, help="Save report to history")
 @click.option("--no-tips", is_flag=True, help="Hide improvement tips")
 @click.option("--config", "config_file", default=None, help="Path to .repohealth.yml config")
-def check(
+def check(  # noqa: PLR0913
     path: str,
     threshold: int,
     json_fmt: bool,
@@ -254,8 +253,8 @@ def check(
 ) -> None:
     """Assess the health of a Git repository.
 
-    Runs a comprehensive suite of checks and produces a score (0–100)
-    with letter grade (A–F).
+    Runs a comprehensive suite of checks and produces a score (0-100)
+    with letter grade (A-F).
     """
     # Load config
     cfg = load_config(path)
@@ -264,7 +263,8 @@ def check(
         try:
             import yaml
 
-            with open(config_file) as f:
+            config_path = Path(config_file)
+            with config_path.open() as f:
                 file_data = yaml.safe_load(f) or {}
             # Merge on top of defaults
             from .config import _deep_merge, DEFAULTS
@@ -274,6 +274,7 @@ def check(
             if "large_file_threshold_kb" in merged:
                 cfg.large_file_threshold_kb = int(merged["large_file_threshold_kb"])
         except Exception:
+            # Config file may be malformed; use defaults
             pass
 
     # Override threshold if specified on command line
@@ -295,10 +296,8 @@ def check(
 
     # Save to history if requested
     if save or cfg.save_history:
-        try:
+        with contextlib.suppress(Exception):
             history_mod.save_report(_report_to_dict(report), repo_path=path)
-        except Exception:
-            pass  # History save is best-effort
 
     # Output
     if github_action:

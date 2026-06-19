@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from typing import List, Optional
 from datetime import UTC
+from typing import Optional
 
 
 @dataclass
@@ -172,7 +172,7 @@ def check(
 
         # Compute age in days
         try:
-            created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            created = datetime.fromisoformat(created_at)
             now = datetime.now(UTC)
             age_days = (now - created).days
         except (ValueError, AttributeError):
@@ -180,10 +180,10 @@ def check(
 
         # Days to merge
         days_to_merge = None
-        if merged_at and merged_at != "None" and merged_at != "null":
+        if merged_at and merged_at not in {"None", "null"}:
             try:
-                merged_dt = datetime.fromisoformat(merged_at.replace("Z", "+00:00"))
-                created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                merged_dt = datetime.fromisoformat(merged_at)
+                created = datetime.fromisoformat(created_at)
                 days_to_merge = (merged_dt - created).days
                 days_to_merge_list.append(days_to_merge)
             except (ValueError, AttributeError):

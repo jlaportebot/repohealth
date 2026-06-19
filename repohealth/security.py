@@ -7,7 +7,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 
 # Patterns that look like secrets/credentials
@@ -144,8 +144,7 @@ def _mask_secret(line: str) -> str:
         line,
     )
     # Mask URL credentials
-    masked = re.sub(r"://([^:\s]+):([^@\s]+)@", r"://\1:****@", masked)
-    return masked
+    return re.sub(r"://([^:\s]+):([^@\s]+)@", r"://\1:****@", masked)
 
 
 def _scan_file_for_secrets(filepath: Path, base: Path) -> list[SecretFinding]:
@@ -160,7 +159,7 @@ def _scan_file_for_secrets(filepath: Path, base: Path) -> list[SecretFinding]:
     for line_num, line in enumerate(lines, start=1):
         stripped = line.strip()
         # Skip comments
-        if stripped.startswith("#") or stripped.startswith("//"):
+        if stripped.startswith(("#", "//")):
             continue
 
         for pattern, description in SECRET_PATTERNS:
