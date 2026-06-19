@@ -88,6 +88,7 @@ ignore = [
 "tests/*" = [
     "S101",     # assert statements in tests
     "ANN201",   # missing return type annotation in tests
+    "ANN202",   # missing return type annotation for private function in tests
     "ANN001",   # missing argument type annotation in tests
     "ANN002",   # missing argument type annotation in tests
     "ANN003",   # missing argument type annotation in tests
@@ -99,6 +100,8 @@ ignore = [
     "INP001",   # implicit namespace package in tests
     "S105",     # hardcoded password false positives in tests
     "DTZ001",   # datetime without timezone in tests
+    "FBT003",   # boolean positional value in function call
+    "S108",     # probable insecure usage of temporary file
 ]
 
 [tool.ruff.format]
